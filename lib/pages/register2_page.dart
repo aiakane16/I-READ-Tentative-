@@ -59,11 +59,20 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
       firstDate: DateTime(2000),
       lastDate: DateTime.now(),
     );
+
     if (pickedDate != null) {
-      String formattedDate = DateFormat('MM/dd/yyyy').format(pickedDate);
-      setState(() {
-        _birthdayController.text = formattedDate;
-      });
+      // Validate the year
+      if (pickedDate.year >= 2015) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+              content: Text('Please select a year between 2000 and 2014.')),
+        );
+      } else {
+        String formattedDate = DateFormat('MM/dd/yyyy').format(pickedDate);
+        setState(() {
+          _birthdayController.text = formattedDate;
+        });
+      }
     }
   }
 
@@ -166,6 +175,7 @@ Please confirm the following information:
             // Full Name Field
             TextFormField(
               controller: _fullNameController,
+              maxLength: 50,
               decoration: InputDecoration(
                 labelText: 'Full Name',
                 labelStyle: TextStyle(color: Colors.white),
@@ -189,6 +199,10 @@ Please confirm the following information:
                 FilteringTextInputFormatter.deny(
                     RegExp(r'\d')), // Disallow numbers
               ],
+              buildCounter: (context,
+                  {required currentLength, required isFocused, maxLength}) {
+                return null; // Prevent showing the "0/50" text
+              },
             ),
             SizedBox(height: 20),
 
@@ -277,6 +291,7 @@ Please confirm the following information:
             // Address Field
             TextFormField(
               controller: _addressController,
+              maxLength: 100,
               decoration: InputDecoration(
                 labelText: 'Address',
                 labelStyle: TextStyle(color: Colors.white),
@@ -296,6 +311,10 @@ Please confirm the following information:
                 prefixIcon: Icon(Icons.location_on, color: Colors.white),
               ),
               style: GoogleFonts.montserrat(color: Colors.white),
+              buildCounter: (context,
+                  {required currentLength, required isFocused, maxLength}) {
+                return null; // Prevent showing the "0/100" text
+              },
             ),
             SizedBox(height: 20),
 

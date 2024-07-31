@@ -96,7 +96,7 @@ class _RegisterPageState extends State<RegisterPage> {
             children: [
               SizedBox(height: 10),
 
-              // Logo
+// Logo
               Image.asset(
                 'assets/i_read_pic.png',
                 width: 75,
@@ -124,7 +124,7 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               SizedBox(height: 20),
 
-              // Email Field
+// Email Field
               TextFormField(
                 controller: _emailController,
                 decoration: InputDecoration(
@@ -150,9 +150,10 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               SizedBox(height: 20),
 
-              // Username Field
+// Username Field
               TextFormField(
                 controller: _usernameController,
+                maxLength: 15,
                 decoration: InputDecoration(
                   labelText: 'Username',
                   labelStyle: TextStyle(color: Colors.white),
@@ -173,10 +174,14 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
                 validator: _validateUsername,
+                buildCounter: (context,
+                    {required currentLength, required isFocused, maxLength}) {
+                  return null; // Prevent showing the "0/15" text
+                },
               ),
               SizedBox(height: 20),
 
-              // Password Field
+// Password Field
               TextFormField(
                 controller: _passwordController,
                 obscureText: !_isPasswordVisible,
@@ -217,7 +222,7 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               SizedBox(height: 20),
 
-              // Confirm Password Field
+// Confirm Password Field
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: !_isConfirmPasswordVisible,
@@ -258,11 +263,11 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               SizedBox(height: 20),
 
-              // Next Button
+// Next Button
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
-                    // Navigate to PersonalInfoPage
+// Navigate to PersonalInfoPage
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (context) => PersonalInfoPage(
@@ -290,7 +295,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
               SizedBox(height: 20),
 
-              // Progress bar
+// Progress bar
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 20.0),
                 child: LinearProgressIndicator(
@@ -302,7 +307,7 @@ class _RegisterPageState extends State<RegisterPage> {
 
               SizedBox(height: 20),
 
-              // Link to Login
+// Link to Login
               RichText(
                 text: TextSpan(
                   style: GoogleFonts.montserrat(color: Colors.white),
