@@ -2,6 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'intro_page.dart'; // Import the IntroPage
+import 'home_page.dart'; // Import the HomePage
 
 class LoginPage extends StatefulWidget {
   @override
@@ -60,10 +61,41 @@ class _LoginPageState extends State<LoginPage> {
   }
 
   void _handleLogin() {
-    // Final validation before login
+    _validateEmail(_emailController.text);
+    _validatePassword(_passwordController.text);
+
+    // Check if there are any errors
     if (_emailError == null && _passwordError == null) {
-      // Handle login logic here if both fields are valid
+      _showConfirmationDialog();
     }
+  }
+
+  void _showConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Confirm Login'),
+        content: Text(
+            'Email: ${_emailController.text}\nPassword: ${_passwordController.text}'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop(); // Close dialog
+            },
+            child: Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(
+                    builder: (context) => HomePage()), // Redirect to HomePage
+              );
+            },
+            child: Text('OK'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override

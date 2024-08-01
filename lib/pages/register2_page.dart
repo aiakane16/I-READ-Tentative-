@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart'; // For FilteringTextInputFormatter
 import 'package:intl/intl.dart'; // For date formatting
-import '../functions/form_data.dart'; // Adjust import according to your structure
+import '../functions/form_data.dart'; // Adjust according to your structure
+import 'home_page.dart'; // Adjust import according to your structure
 
 class PersonalInfoPage extends StatefulWidget {
   final TextEditingController emailController;
@@ -53,24 +54,29 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   }
 
   Future<void> _selectBirthday(BuildContext context) async {
+    DateTime now = DateTime.now();
+
     DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime(2000),
-      lastDate: DateTime.now(),
+      initialDate: now,
+      firstDate: DateTime(2000, 1, 1), // Start from 2000
+      lastDate: now, // Allow today's date
     );
 
     if (pickedDate != null) {
-      // Validate the year
-      if (pickedDate.year >= 2015) {
+      // Validate the selected year
+      if (pickedDate.year < 2000 || pickedDate.year > 2014) {
+        // Show a Snackbar for immediate feedback
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-              content: Text('Please select a year between 2000 and 2014.')),
+            content: Text('Please select a date between 2000 and 2014.'),
+            duration: Duration(seconds: 2),
+          ),
         );
       } else {
         String formattedDate = DateFormat('MM/dd/yyyy').format(pickedDate);
         setState(() {
-          _birthdayController.text = formattedDate;
+          _birthdayController.text = formattedDate; // Update text field
         });
       }
     }
@@ -108,16 +114,17 @@ Please confirm the following information:
         actions: [
           TextButton(
             onPressed: () {
-              // Close dialog and don't save
               Navigator.of(context).pop(); // Close dialog (No)
             },
             child: Text('No'),
           ),
           TextButton(
             onPressed: () {
-              // Proceed to next step on 'Yes'
               Navigator.of(context).pop(); // Close dialog
-              // You can navigate to the main page or perform sign-up action here
+              // Proceed to HomePage on 'Yes'
+              Navigator.of(context).pushReplacement(
+                MaterialPageRoute(builder: (context) => HomePage()),
+              );
             },
             child: Text('Yes'),
           ),
