@@ -124,9 +124,10 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               SizedBox(height: 20),
 
-// Email Field
+// Email Field in Register Page
               TextFormField(
                 controller: _emailController,
+                maxLength: 30, // Set max length to 30
                 decoration: InputDecoration(
                   labelText: 'E-Mail',
                   labelStyle: TextStyle(color: Colors.white),
@@ -147,6 +148,12 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
                 validator: _validateEmail,
+                buildCounter: (context,
+                    {required int currentLength,
+                    required bool isFocused,
+                    int? maxLength}) {
+                  return null; // Prevent showing the "0/30" text
+                },
               ),
               SizedBox(height: 20),
 
