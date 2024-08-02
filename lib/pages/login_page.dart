@@ -2,7 +2,7 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'intro_page.dart'; // Import the IntroPage
-import 'home_page.dart'; // Import the HomePage
+import '../mainmenu/home_menu.dart'; // Import the HomePage
 
 class LoginPage extends StatefulWidget {
   @override
@@ -88,7 +88,9 @@ class _LoginPageState extends State<LoginPage> {
             onPressed: () {
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
-                    builder: (context) => HomePage()), // Redirect to HomePage
+                    builder: (context) => HomeMenu(
+                          username: '',
+                        )), // Redirect to HomePage
               );
             },
             child: Text('OK'),

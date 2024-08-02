@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart'; // For FilteringTextInputFormatter
 import 'package:intl/intl.dart'; // For date formatting
 import '../functions/form_data.dart'; // Adjust according to your structure
-import 'home_page.dart'; // Adjust import according to your structure
+import '../mainmenu/home_menu.dart'; // Adjust import according to your structure
 
 class PersonalInfoPage extends StatefulWidget {
   final TextEditingController emailController;
@@ -27,7 +27,11 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   final TextEditingController _birthdayController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
 
-  final List<String> strands = ['TVL', 'HUMSS', 'ABM'];
+  final List<String> strands = [
+    'Technical-Vocational-Livelihood (TVL)',
+    'Humanities and Social Sciences (HUMSS)',
+    'Accountancy, Business, & Management (ABM)'
+  ];
 
   @override
   void initState() {
@@ -123,7 +127,10 @@ Please confirm the following information:
               Navigator.of(context).pop(); // Close dialog
               // Proceed to HomePage on 'Yes'
               Navigator.of(context).pushReplacement(
-                MaterialPageRoute(builder: (context) => HomePage()),
+                MaterialPageRoute(
+                    builder: (context) => HomeMenu(
+                          username: '',
+                        )),
               );
             },
             child: Text('Yes'),

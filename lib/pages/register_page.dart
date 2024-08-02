@@ -1,6 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../mainmenu/home_menu.dart';
 import 'login_page.dart';
 import 'register2_page.dart'; // Import the PersonalInfoPage
 
@@ -274,8 +275,9 @@ class _RegisterPageState extends State<RegisterPage> {
               ElevatedButton(
                 onPressed: () {
                   if (_formKey.currentState!.validate()) {
-// Navigate to PersonalInfoPage
-                    Navigator.of(context).push(
+                    // Navigate to PersonalInfoPage
+                    Navigator.of(context)
+                        .push(
                       MaterialPageRoute(
                         builder: (context) => PersonalInfoPage(
                           emailController: _emailController,
@@ -283,7 +285,18 @@ class _RegisterPageState extends State<RegisterPage> {
                           passwordController: _passwordController,
                         ),
                       ),
-                    );
+                    )
+                        .then((result) {
+                      // After PersonalInfoPage is done, navigate to HomePage
+                      if (result != null) {
+                        Navigator.of(context).pushReplacement(
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                HomeMenu(username: _usernameController.text),
+                          ),
+                        );
+                      }
+                    });
                   }
                 },
                 style: ElevatedButton.styleFrom(
