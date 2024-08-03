@@ -13,15 +13,47 @@ class SettingsMenu extends StatelessWidget {
             end: Alignment.bottomCenter,
           ),
         ),
-        padding: const EdgeInsets.all(20.0),
-        child: Center(
-          child: Text(
-            'Settings Placeholder',
-            style: GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
-          ),
+        child: ListView(
+          padding: const EdgeInsets.all(20.0),
+          children: [
+            Center(
+              child: Text(
+                'Settings',
+                style: GoogleFonts.montserrat(
+                    fontSize: 32,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white),
+              ),
+            ),
+            SizedBox(height: 20),
+            _buildSettingsButton('Edit Profile', context),
+            _buildSettingsButton('Log Out', context, isLogout: true),
+          ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
+      bottomNavigationBar:
+          _buildBottomNavigationBar(context), // Ensure the nav bar is included
+    );
+  }
+
+  Widget _buildSettingsButton(String title, BuildContext context,
+      {bool isLogout = false}) {
+    return Card(
+      color: Colors.blue[800],
+      margin: EdgeInsets.symmetric(vertical: 10),
+      child: ListTile(
+        title: Text(
+          title,
+          style: GoogleFonts.montserrat(
+              color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        onTap: () {
+          if (isLogout) {
+            Navigator.of(context).pushReplacementNamed('/splash_page');
+          }
+          // Add other navigation logic here if needed
+        },
+      ),
     );
   }
 

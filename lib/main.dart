@@ -29,6 +29,7 @@ class MyApp extends StatelessWidget {
         '/addfield_menu': (context) => AddFieldMenu(),
         '/profile_menu': (context) => ProfileMenu(),
         '/settings_menu': (context) => SettingsMenu(),
+        '/splash_page': (context) => SplashPage(), // Add this line
       },
     );
   }

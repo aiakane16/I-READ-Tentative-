@@ -14,14 +14,79 @@ class ProfileMenu extends StatelessWidget {
           ),
         ),
         padding: const EdgeInsets.all(20.0),
-        child: Center(
-          child: Text(
-            'Profile Placeholder',
-            style: GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Profile Circle
+            Center(
+              child: CircleAvatar(
+                radius: 60,
+                backgroundImage:
+                    AssetImage('assets/i_read_pic.png'), // Add your image
+              ),
+            ),
+            SizedBox(height: 20),
+            Center(
+              child: Text(
+                'Juan Dela Cruz',
+                style: GoogleFonts.montserrat(
+                    fontSize: 24,
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold),
+              ),
+            ),
+            Center(
+              child: Text(
+                'Food and Bar Services (FBS)\nTanauan School of Fisheries',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.montserrat(color: Colors.white),
+              ),
+            ),
+            SizedBox(height: 20),
+
+            // Statistics Section
+            Text('Statistics',
+                style: GoogleFonts.montserrat(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
+            SizedBox(height: 10),
+            Expanded(
+              child: GridView.count(
+                crossAxisCount: 2,
+                children: [
+                  _buildStatCard('Ranking', '#1/100'),
+                  _buildStatCard('XP Earned', '20,312'),
+                  _buildStatCard('Modules Completed', '10/22'),
+                  _buildStatCard('Level', '12'),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
+      bottomNavigationBar:
+          _buildBottomNavigationBar(context), // Ensure the nav bar is included
+    );
+  }
+
+  Widget _buildStatCard(String title, String value) {
+    return Card(
+      color: Colors.blue[800],
+      margin: EdgeInsets.all(8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(title,
+                style: GoogleFonts.montserrat(
+                    color: Colors.white, fontWeight: FontWeight.bold)),
+            SizedBox(height: 10),
+            Text(value,
+                style:
+                    GoogleFonts.montserrat(color: Colors.white, fontSize: 20)),
+          ],
+        ),
+      ),
     );
   }
 
