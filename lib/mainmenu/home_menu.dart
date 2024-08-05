@@ -69,21 +69,13 @@ class _HomeMenuState extends State<HomeMenu> {
               child: ListView(
                 children: [
                   _buildModuleCard(context, 'Basics of Subject Verb Agreement',
-                      moduleStatus1, 'MEDIUM', '1,000 XP', (newValue) {
-                    setState(() {
-                      moduleStatus1 = newValue!;
-                    });
-                  }),
+                      moduleStatus1, 'MEDIUM', '1,000 XP'),
                   _buildModuleCard(
                       context,
                       'Singular and Plural Nouns (Part II)',
                       moduleStatus2,
                       'EASY',
-                      '500 XP', (newValue) {
-                    setState(() {
-                      moduleStatus2 = newValue!;
-                    });
-                  }),
+                      '500 XP'),
                 ],
               ),
             ),
@@ -91,6 +83,36 @@ class _HomeMenuState extends State<HomeMenu> {
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
+    );
+  }
+
+  Widget _buildModuleCard(BuildContext context, String title, String status,
+      String difficulty, String reward) {
+    return Card(
+      color: Colors.white,
+      margin: EdgeInsets.symmetric(vertical: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.montserrat(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                  fontSize: 18),
+            ),
+            SizedBox(height: 10),
+            Text('Status: $status',
+                style: GoogleFonts.montserrat(color: Colors.black)),
+            Text('Difficulty: $difficulty',
+                style: GoogleFonts.montserrat(color: Colors.blue)),
+            Text('Reward: $reward',
+                style: GoogleFonts.montserrat(color: Colors.blue)),
+          ],
+        ),
+      ),
     );
   }
 
@@ -123,58 +145,6 @@ class _HomeMenuState extends State<HomeMenu> {
             break;
         }
       },
-    );
-  }
-
-  Widget _buildModuleCard(BuildContext context, String title, String status,
-      String difficulty, String reward, Function(String?)? onChanged) {
-    return GestureDetector(
-      onTap: () {
-        Navigator.pushNamed(context, '/modules_menu');
-      },
-      child: Card(
-        color: Colors.white,
-        margin: EdgeInsets.symmetric(vertical: 10),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                title,
-                style: GoogleFonts.montserrat(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue,
-                    fontSize: 18),
-              ),
-              SizedBox(height: 10),
-              DropdownButton<String>(
-                value: status,
-                items: <String>['NOT STARTED', 'IN PROGRESS', 'COMPLETED']
-                    .map((String value) {
-                  return DropdownMenuItem<String>(
-                    value: value,
-                    child: Text(
-                      value,
-                      style: GoogleFonts.montserrat(
-                          color: Colors.blue, fontWeight: FontWeight.bold),
-                    ),
-                  );
-                }).toList(),
-                onChanged: onChanged,
-                dropdownColor: Colors.white,
-                iconEnabledColor: Colors.black,
-                isExpanded: true,
-              ),
-              SizedBox(height: 10),
-              Text('Difficulty: $difficulty',
-                  style: GoogleFonts.montserrat(color: Colors.blue)),
-              Text('Reward: $reward',
-                  style: GoogleFonts.montserrat(color: Colors.blue)),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

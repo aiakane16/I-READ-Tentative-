@@ -14,14 +14,49 @@ class AddFieldMenu extends StatelessWidget {
           ),
         ),
         padding: const EdgeInsets.all(20.0),
-        child: Center(
-          child: Text(
-            'Add Field Placeholder',
-            style: GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
-          ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            Text(
+              'Choose Your Field',
+              style: GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
+            ),
+            SizedBox(height: 20),
+            _buildFieldButton(context, 'Vocabulary Skills', Colors.lightBlue),
+            _buildFieldButton(
+                context, 'Reading Comprehension', Colors.red[200]),
+            _buildFieldButton(context, 'Word Pronunciation',
+                Colors.green), // Changed to Green
+            _buildFieldButton(context, 'Sentence Composition',
+                Colors.yellow), // Changed to Yellow
+          ],
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
+    );
+  }
+
+  Widget _buildFieldButton(BuildContext context, String title, Color? color) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: ElevatedButton(
+        onPressed: () {
+          // Action for button press
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: color, // Set the button color
+          padding:
+              EdgeInsets.symmetric(vertical: 24), // Increase vertical padding
+          minimumSize: Size(double.infinity, 60), // Make button height larger
+        ),
+        child: Text(
+          title,
+          style: GoogleFonts.montserrat(
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white), // Bold font style
+        ),
+      ),
     );
   }
 

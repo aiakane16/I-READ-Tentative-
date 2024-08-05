@@ -14,14 +14,87 @@ class ModulesMenu extends StatelessWidget {
           ),
         ),
         padding: const EdgeInsets.all(20.0),
-        child: Center(
-          child: Text(
-            'Modules Placeholder',
-            style: GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
-          ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Hi, Juan!',
+              style: GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
+            ),
+            SizedBox(height: 10),
+            Text(
+              'Available Modules:',
+              style: GoogleFonts.montserrat(fontSize: 18, color: Colors.white),
+            ),
+            SizedBox(height: 10),
+            Expanded(
+              child: ListView(
+                children: [
+                  _buildModuleCard(
+                    context,
+                    'Singular and Plural Nouns (Part I)',
+                    'IN PROGRESS',
+                    'EASY',
+                    '1000 XP',
+                  ),
+                  _buildModuleCard(
+                    context,
+                    'Basics of Subject Verb Agreement',
+                    'NOT STARTED',
+                    'MEDIUM',
+                    '1000 XP',
+                  ),
+                  _buildModuleCard(
+                    context,
+                    'Singular and Plural Nouns (Part II)',
+                    'IN PROGRESS',
+                    'EASY',
+                    '500 XP',
+                  ),
+                  _buildModuleCard(
+                    context,
+                    'Advanced Synonyms and Antonyms',
+                    'LOCKED',
+                    'HARD',
+                    '2000 XP',
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
+    );
+  }
+
+  Widget _buildModuleCard(BuildContext context, String title, String status,
+      String difficulty, String reward) {
+    return Card(
+      color: Colors.white,
+      margin: EdgeInsets.symmetric(vertical: 10),
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: GoogleFonts.montserrat(
+                  fontWeight: FontWeight.bold,
+                  color: Colors.blue,
+                  fontSize: 18),
+            ),
+            SizedBox(height: 10),
+            Text('Status: $status',
+                style: GoogleFonts.montserrat(color: Colors.black)),
+            Text('Difficulty: $difficulty',
+                style: GoogleFonts.montserrat(color: Colors.blue)),
+            Text('Reward: $reward',
+                style: GoogleFonts.montserrat(color: Colors.blue)),
+          ],
+        ),
+      ),
     );
   }
 
