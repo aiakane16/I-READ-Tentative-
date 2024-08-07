@@ -12,6 +12,10 @@ dependencies:
     sdk: flutter
   google_fonts: ^6.2.1  # Move this line outside of the flutter SDK declaration
   intl: ^0.19.0
+  firebase_auth: ^4.16.0
+  cloud_firestore: ^4.14.0
+  firebase_core: ^2.24.2
+  firebase_analytics: ^10.8.0
 
 dev_dependencies:
   flutter_test:
