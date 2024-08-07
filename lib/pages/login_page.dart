@@ -1,8 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_core/firebase_core.dart';
 import 'intro_page.dart'; // Import the IntroPage
-import '../mainmenu/home_menu.dart'; // Import the HomePage
 
 class LoginPage extends StatefulWidget {
   @override
@@ -10,94 +11,50 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  bool _rememberMe = false; // Track the state of the checkbox
-  bool _isPasswordVisible = false; // Track password visibility
+  bool _isPasswordVisible = false;
   String? _emailError;
   String? _passwordError;
 
-  bool _isEmailValid(String email) {
-    final emailRegExp =
-        RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-    return emailRegExp.hasMatch(email);
+  @override
+  void initState() {
+    super.initState();
+    _initializeFirebase();
   }
 
-  void _validateEmail(String value) {
-    if (value.isEmpty) {
-      setState(() {
-        _emailError = 'Please input a valid email';
-      });
-    } else if (!_isEmailValid(value)) {
-      setState(() {
-        _emailError = 'Please input a valid email';
-      });
-    } else if (value.length > 30) {
-      setState(() {
-        _emailError = 'Email must be 30 characters or less';
-      });
-    } else {
-      setState(() {
-        _emailError = null; // Clear error
-      });
-    }
-  }
-
-  bool _isPasswordValid(String password) {
-    return password.length >= 8 && password.length <= 10;
-  }
-
-  void _validatePassword(String value) {
-    if (value.isEmpty || !_isPasswordValid(value)) {
-      setState(() {
-        _passwordError = 'Password must be between 8 to 10 characters';
-      });
-    } else {
-      setState(() {
-        _passwordError = null; // Clear error
-      });
-    }
-  }
-
-  void _handleLogin() {
-    _validateEmail(_emailController.text);
-    _validatePassword(_passwordController.text);
-
-    // Check if there are any errors
-    if (_emailError == null && _passwordError == null) {
-      _showConfirmationDialog();
-    }
-  }
-
-  void _showConfirmationDialog() {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Confirm Login'),
-        content: Text(
-            'Email: ${_emailController.text}\nPassword: ${_passwordController.text}'),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-            },
-            child: Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                    builder: (context) => HomeMenu(
-                          username: '',
-                        )), // Redirect to HomePage
-              );
-            },
-            child: Text('OK'),
-          ),
-        ],
+  Future<void> _initializeFirebase() async {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyBVfRzUF6fklJTckRC5n-G4WUKNy8qBj_o",
+        authDomain: "i-read-tentative.firebaseapp.com",
+        databaseURL:
+            "https://i-read-tentative-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "i-read-tentative",
+        storageBucket: "i-read-tentative.appspot.com",
+        messagingSenderId: "211486070399",
+        appId: "1:211486070399:web:2edb63d1d51d58a51c514a",
+        measurementId: "G-64MRZZP3LD",
       ),
     );
+  }
+
+  void _handleLogin() async {
+    String email = _emailController.text;
+    String password = _passwordController.text;
+
+    if (_emailError == null && _passwordError == null) {
+      try {
+        await _auth.signInWithEmailAndPassword(
+            email: email, password: password);
+        Navigator.of(context).pushReplacementNamed('/home');
+      } catch (e) {
+        setState(() {
+          _emailError = 'Invalid email or password.';
+        });
+      }
+    }
   }
 
   @override
@@ -113,7 +70,6 @@ class _LoginPageState extends State<LoginPage> {
         ),
         padding: const EdgeInsets.all(20.0),
         child: Form(
-          key: _formKey,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -128,8 +84,8 @@ class _LoginPageState extends State<LoginPage> {
                 'where learning gets better.',
                 style: TextStyle(color: Colors.white, fontSize: 16),
               ),
-              SizedBox(height: 10), // Space above divider
-              Divider(color: Colors.white, thickness: 1), // Line between texts
+              SizedBox(height: 10),
+              Divider(color: Colors.white, thickness: 1),
               SizedBox(height: 20),
 
               // Login Text
@@ -146,63 +102,30 @@ class _LoginPageState extends State<LoginPage> {
               // Email Field
               TextFormField(
                 controller: _emailController,
-                maxLength: 30,
                 decoration: InputDecoration(
                   labelText: 'E-Mail',
                   labelStyle: TextStyle(color: Colors.white),
                   filled: true,
                   fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
+                  border: OutlineInputBorder(),
                   hintText: 'Enter E-mail here...',
                   hintStyle: TextStyle(color: Colors.white54),
                   prefixIcon: Icon(Icons.email, color: Colors.white),
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
-                onChanged: _validateEmail, // Validate on input change
-                buildCounter: (context,
-                    {required int currentLength,
-                    required bool isFocused,
-                    int? maxLength}) {
-                  return null; // Prevent showing the "0/30" text
-                },
               ),
-              if (_emailError != null) // Show email error
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    _emailError!,
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
               SizedBox(height: 20),
 
               // Password Field
               TextFormField(
                 controller: _passwordController,
                 obscureText: !_isPasswordVisible,
-                maxLength: 10,
                 decoration: InputDecoration(
                   labelText: 'Password',
                   labelStyle: TextStyle(color: Colors.white),
                   filled: true,
                   fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
+                  border: OutlineInputBorder(),
                   hintText: 'Enter password here...',
                   hintStyle: TextStyle(color: Colors.white54),
                   prefixIcon: Icon(Icons.lock, color: Colors.white),
@@ -221,44 +144,8 @@ class _LoginPageState extends State<LoginPage> {
                   ),
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
-                onChanged: _validatePassword, // Validate on input change
-                buildCounter: (context,
-                    {required int currentLength,
-                    required bool isFocused,
-                    int? maxLength}) {
-                  return null; // Prevent showing the "0/10" text
-                },
               ),
-              if (_passwordError != null) // Show password error
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    _passwordError!,
-                    style: TextStyle(color: Colors.red),
-                  ),
-                ),
               SizedBox(height: 20),
-
-              // Remember Me Checkbox
-              Row(
-                children: [
-                  Checkbox(
-                    value: _rememberMe,
-                    onChanged: (value) {
-                      setState(() {
-                        _rememberMe = value!;
-                      });
-                    },
-                    activeColor: Colors.blue[600],
-                  ),
-                  Text(
-                    'Remember Me',
-                    style: GoogleFonts.montserrat(color: Colors.white),
-                  ),
-                ],
-              ),
-
-              SizedBox(height: 20), // Space between checkbox and login button
 
               // Login Button
               ElevatedButton(
@@ -270,15 +157,13 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 child: Text(
                   'Login',
-                  style: GoogleFonts.montserrat(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: GoogleFonts.montserrat(color: Colors.white),
                 ),
               ),
 
-              // Sign Up Link
               SizedBox(height: 20),
+
+              // Sign Up Link
               RichText(
                 text: TextSpan(
                   style: GoogleFonts.montserrat(color: Colors.white),

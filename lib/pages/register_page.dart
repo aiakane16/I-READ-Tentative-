@@ -1,9 +1,11 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 import '../mainmenu/home_menu.dart';
 import 'login_page.dart';
-import 'register2_page.dart'; // Import the PersonalInfoPage
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -18,63 +20,62 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
-  bool _isPasswordVisible = false; // Track password visibility
-  bool _isConfirmPasswordVisible = false; // Track confirm password visibility
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeFirebase();
+  }
+
+  Future<void> _initializeFirebase() async {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyBVfRzUF6fklJTckRC5n-G4WUKNy8qBj_o",
+        authDomain: "i-read-tentative.firebaseapp.com",
+        databaseURL:
+            "https://i-read-tentative-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "i-read-tentative",
+        storageBucket: "i-read-tentative.appspot.com",
+        messagingSenderId: "211486070399",
+        appId: "1:211486070399:web:2edb63d1d51d58a51c514a",
+        measurementId: "G-64MRZZP3LD",
+      ),
+    );
+  }
 
   bool _isPasswordValid(String password) {
     return password.length >= 8 && password.length <= 10;
   }
 
-  bool _isEmailValid(String email) {
-    final emailRegExp =
-        RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
-    return emailRegExp.hasMatch(email);
-  }
+  void _handleSignUp() async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        UserCredential userCredential =
+            await _auth.createUserWithEmailAndPassword(
+          email: _emailController.text,
+          password: _passwordController.text,
+        );
 
-  String? _validateEmail(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please input a valid email';
-    } else if (!_isEmailValid(value)) {
-      return 'Please input a valid email';
+        await _firestore.collection('users').doc(userCredential.user!.uid).set({
+          'email': _emailController.text,
+          'username': _usernameController.text,
+        });
+
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => HomeMenu(username: _usernameController.text),
+          ),
+        );
+      } catch (e) {
+        // Handle error
+        print(e);
+      }
     }
-    return null;
-  }
-
-  String? _validateUsername(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please input a username';
-    }
-    return null;
-  }
-
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty || !_isPasswordValid(value)) {
-      return 'Please input at least 8 characters';
-    }
-    return null;
-  }
-
-  String? _validateConfirmPassword(String? value) {
-    if (value == null || value.isEmpty) {
-      return 'Please confirm your password';
-    } else if (!_isPasswordValid(value)) {
-      return 'Password must be between 8 to 10 characters';
-    } else if (value != _passwordController.text) {
-      return 'Passwords do not match';
-    }
-    return null;
-  }
-
-  void _togglePasswordVisibility() {
-    setState(() {
-      _isPasswordVisible = !_isPasswordVisible;
-    });
-  }
-
-  void _toggleConfirmPasswordVisibility() {
-    setState(() {
-      _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
-    });
   }
 
   @override
@@ -91,13 +92,12 @@ class _RegisterPageState extends State<RegisterPage> {
         padding: const EdgeInsets.all(20.0),
         child: Form(
           key: _formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
               SizedBox(height: 10),
 
-// Logo
+              // Logo
               Image.asset(
                 'assets/i_read_pic.png',
                 width: 75,
@@ -125,10 +125,10 @@ class _RegisterPageState extends State<RegisterPage> {
               ),
               SizedBox(height: 20),
 
-// Email Field in Register Page
+              // Email Field
               TextFormField(
                 controller: _emailController,
-                maxLength: 30, // Set max length to 30
+                maxLength: 30,
                 decoration: InputDecoration(
                   labelText: 'E-Mail',
                   labelStyle: TextStyle(color: Colors.white),
@@ -137,28 +137,21 @@ class _RegisterPageState extends State<RegisterPage> {
                   border: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.blue[800]!),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
                   hintText: 'Enter E-mail here...',
                   hintStyle: TextStyle(color: Colors.white54),
                   prefixIcon: Icon(Icons.email, color: Colors.white),
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
-                validator: _validateEmail,
-                buildCounter: (context,
-                    {required int currentLength,
-                    required bool isFocused,
-                    int? maxLength}) {
-                  return null; // Prevent showing the "0/30" text
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please input a valid email';
+                  }
+                  return null;
                 },
               ),
               SizedBox(height: 20),
 
-// Username Field
+              // Username Field
               TextFormField(
                 controller: _usernameController,
                 maxLength: 15,
@@ -170,26 +163,21 @@ class _RegisterPageState extends State<RegisterPage> {
                   border: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.blue[800]!),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
                   hintText: 'Enter username here...',
                   hintStyle: TextStyle(color: Colors.white54),
                   prefixIcon: Icon(Icons.person, color: Colors.white),
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
-                validator: _validateUsername,
-                buildCounter: (context,
-                    {required currentLength, required isFocused, maxLength}) {
-                  return null; // Prevent showing the "0/15" text
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please input a username';
+                  }
+                  return null;
                 },
               ),
               SizedBox(height: 20),
 
-// Password Field
+              // Password Field
               TextFormField(
                 controller: _passwordController,
                 obscureText: !_isPasswordVisible,
@@ -202,12 +190,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   border: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.blue[800]!),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
                   hintText: 'Enter password here...',
                   hintStyle: TextStyle(color: Colors.white54),
                   prefixIcon: Icon(Icons.lock, color: Colors.white),
@@ -218,19 +200,26 @@ class _RegisterPageState extends State<RegisterPage> {
                           : Icons.visibility_off,
                       color: Colors.white,
                     ),
-                    onPressed: _togglePasswordVisibility,
+                    onPressed: () {
+                      setState(() {
+                        _isPasswordVisible = !_isPasswordVisible;
+                      });
+                    },
                   ),
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
-                validator: _validatePassword,
-                buildCounter: (context,
-                    {required currentLength, required isFocused, maxLength}) {
-                  return null; // Prevent showing the "0/10" text
+                validator: (value) {
+                  if (value == null ||
+                      value.isEmpty ||
+                      !_isPasswordValid(value)) {
+                    return 'Please input at least 8 characters';
+                  }
+                  return null;
                 },
               ),
               SizedBox(height: 20),
 
-// Confirm Password Field
+              // Confirm Password Field
               TextFormField(
                 controller: _confirmPasswordController,
                 obscureText: !_isConfirmPasswordVisible,
@@ -243,12 +232,6 @@ class _RegisterPageState extends State<RegisterPage> {
                   border: OutlineInputBorder(
                     borderSide: BorderSide(color: Colors.blue[800]!),
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderSide: BorderSide(color: Colors.blue[800]!),
-                  ),
                   hintText: 'Confirm password here...',
                   hintStyle: TextStyle(color: Colors.white54),
                   prefixIcon: Icon(Icons.lock_outline, color: Colors.white),
@@ -259,75 +242,42 @@ class _RegisterPageState extends State<RegisterPage> {
                           : Icons.visibility_off,
                       color: Colors.white,
                     ),
-                    onPressed: _toggleConfirmPasswordVisibility,
+                    onPressed: () {
+                      setState(() {
+                        _isConfirmPasswordVisible = !_isConfirmPasswordVisible;
+                      });
+                    },
                   ),
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
-                validator: _validateConfirmPassword,
-                buildCounter: (context,
-                    {required currentLength, required isFocused, maxLength}) {
-                  return null; // Prevent showing the "0/10" text
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please confirm your password';
+                  } else if (value != _passwordController.text) {
+                    return 'Passwords do not match';
+                  }
+                  return null;
                 },
               ),
               SizedBox(height: 20),
 
-// Next Button
+              // Register Button
               ElevatedButton(
-                onPressed: () {
-                  if (_formKey.currentState!.validate()) {
-                    // Navigate to PersonalInfoPage
-                    Navigator.of(context)
-                        .push(
-                      MaterialPageRoute(
-                        builder: (context) => PersonalInfoPage(
-                          emailController: _emailController,
-                          usernameController: _usernameController,
-                          passwordController: _passwordController,
-                        ),
-                      ),
-                    )
-                        .then((result) {
-                      // After PersonalInfoPage is done, navigate to HomePage
-                      if (result != null) {
-                        Navigator.of(context).pushReplacement(
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                HomeMenu(username: _usernameController.text),
-                          ),
-                        );
-                      }
-                    });
-                  }
-                },
+                onPressed: _handleSignUp,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[600],
                   padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
                   minimumSize: Size(double.infinity, 50),
                 ),
                 child: Text(
-                  'Next',
-                  style: GoogleFonts.montserrat(
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  'Register',
+                  style: GoogleFonts.montserrat(color: Colors.white),
                 ),
               ),
 
               SizedBox(height: 20),
 
-// Progress bar
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20.0),
-                child: LinearProgressIndicator(
-                  value: 2 / 3,
-                  backgroundColor: Colors.grey[400],
-                  color: Colors.blue,
-                ),
-              ),
-
-              SizedBox(height: 20),
-
-// Link to Login
+              // Link to Login
               RichText(
                 text: TextSpan(
                   style: GoogleFonts.montserrat(color: Colors.white),
@@ -340,8 +290,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         ..onTap = () {
                           Navigator.of(context).push(
                             MaterialPageRoute(
-                              builder: (context) => LoginPage(),
-                            ),
+                                builder: (context) => LoginPage()),
                           );
                         },
                     ),

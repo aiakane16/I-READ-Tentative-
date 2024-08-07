@@ -1,27 +1,26 @@
-import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart'; // For FilteringTextInputFormatter
 import 'package:intl/intl.dart'; // For date formatting
-import '../functions/form_data.dart'; // Adjust according to your structure
 import '../mainmenu/home_menu.dart'; // Adjust import according to your structure
+import 'package:firebase_core/firebase_core.dart';
 
-class PersonalInfoPage extends StatefulWidget {
+class Register2Page extends StatefulWidget {
   final TextEditingController emailController;
   final TextEditingController usernameController;
   final TextEditingController passwordController;
 
-  PersonalInfoPage({
+  Register2Page({
     required this.emailController,
     required this.usernameController,
     required this.passwordController,
   });
 
   @override
-  _PersonalInfoPageState createState() => _PersonalInfoPageState();
+  _Register2PageState createState() => _Register2PageState();
 }
 
-class _PersonalInfoPageState extends State<PersonalInfoPage> {
+class _Register2PageState extends State<Register2Page> {
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _strandController = TextEditingController();
   final TextEditingController _birthdayController = TextEditingController();
@@ -30,31 +29,29 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   final List<String> strands = [
     'Technical-Vocational-Livelihood (TVL)',
     'Humanities and Social Sciences (HUMSS)',
-    'Accountancy, Business, & Management (ABM)'
+    'Accountancy, Business, & Management (ABM)',
   ];
 
   @override
   void initState() {
     super.initState();
-    // Load values from FormData
-    _fullNameController.text = FormData().fullName;
-    _strandController.text = FormData().strand;
-    _birthdayController.text = FormData().birthday;
-    _addressController.text = FormData().address;
+    _initializeFirebase();
+  }
 
-    // Add listeners to save input in real-time
-    _fullNameController.addListener(() {
-      FormData().fullName = _fullNameController.text;
-    });
-    _strandController.addListener(() {
-      FormData().strand = _strandController.text;
-    });
-    _birthdayController.addListener(() {
-      FormData().birthday = _birthdayController.text;
-    });
-    _addressController.addListener(() {
-      FormData().address = _addressController.text;
-    });
+  Future<void> _initializeFirebase() async {
+    await Firebase.initializeApp(
+      options: const FirebaseOptions(
+        apiKey: "AIzaSyBVfRzUF6fklJTckRC5n-G4WUKNy8qBj_o",
+        authDomain: "i-read-tentative.firebaseapp.com",
+        databaseURL:
+            "https://i-read-tentative-default-rtdb.asia-southeast1.firebasedatabase.app",
+        projectId: "i-read-tentative",
+        storageBucket: "i-read-tentative.appspot.com",
+        messagingSenderId: "211486070399",
+        appId: "1:211486070399:web:2edb63d1d51d58a51c514a",
+        measurementId: "G-64MRZZP3LD",
+      ),
+    );
   }
 
   Future<void> _selectBirthday(BuildContext context) async {
@@ -63,14 +60,12 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: now,
-      firstDate: DateTime(2000, 1, 1), // Start from 2000
-      lastDate: now, // Allow today's date
+      firstDate: DateTime(2000, 1, 1),
+      lastDate: now,
     );
 
     if (pickedDate != null) {
-      // Validate the selected year
       if (pickedDate.year < 2000 || pickedDate.year > 2014) {
-        // Show a Snackbar for immediate feedback
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Please select a date between 2000 and 2014.'),
@@ -80,7 +75,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
       } else {
         String formattedDate = DateFormat('MM/dd/yyyy').format(pickedDate);
         setState(() {
-          _birthdayController.text = formattedDate; // Update text field
+          _birthdayController.text = formattedDate;
         });
       }
     }
@@ -97,7 +92,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
       return;
     }
 
-    // Prepare the confirmation message
     String message = '''
 Please confirm the following information:
 - Email: ${widget.emailController.text}
@@ -109,7 +103,6 @@ Please confirm the following information:
 - Address: ${_addressController.text}
 ''';
 
-    // Show confirmation dialog
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -125,11 +118,10 @@ Please confirm the following information:
           TextButton(
             onPressed: () {
               Navigator.of(context).pop(); // Close dialog
-              // Proceed to HomePage on 'Yes'
               Navigator.of(context).pushReplacement(
                 MaterialPageRoute(
                     builder: (context) => HomeMenu(
-                          username: '',
+                          username: widget.usernameController.text,
                         )),
               );
             },
@@ -189,53 +181,25 @@ Please confirm the following information:
             // Full Name Field
             TextFormField(
               controller: _fullNameController,
-              maxLength: 50,
               decoration: InputDecoration(
                 labelText: 'Full Name',
                 labelStyle: TextStyle(color: Colors.white),
                 filled: true,
                 fillColor: Colors.blue[800]?.withOpacity(0.3),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue[800]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue[800]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue[800]!),
-                ),
-                hintText: 'Enter Full Name here...',
-                hintStyle: TextStyle(color: Colors.white54),
-                prefixIcon: Icon(Icons.person, color: Colors.white),
+                border: OutlineInputBorder(),
               ),
               style: GoogleFonts.montserrat(color: Colors.white),
-              inputFormatters: [
-                FilteringTextInputFormatter.deny(
-                    RegExp(r'\d')), // Disallow numbers
-              ],
-              buildCounter: (context,
-                  {required currentLength, required isFocused, maxLength}) {
-                return null; // Prevent showing the "0/50" text
-              },
             ),
             SizedBox(height: 20),
 
-            // Strand ComboBox with Icon
+            // Strand ComboBox
             InputDecorator(
               decoration: InputDecoration(
                 labelText: 'Strand',
                 labelStyle: TextStyle(color: Colors.white),
                 filled: true,
                 fillColor: Colors.blue[800]?.withOpacity(0.3),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue[800]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue[800]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue[800]!),
-                ),
+                border: OutlineInputBorder(),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
@@ -247,14 +211,8 @@ Please confirm the following information:
                   items: strands.map((String strand) {
                     return DropdownMenuItem<String>(
                       value: strand,
-                      child: Row(
-                        children: [
-                          Icon(Icons.school,
-                              color: Colors.white), // Strand icon
-                          SizedBox(width: 10),
+                      child:
                           Text(strand, style: TextStyle(color: Colors.white)),
-                        ],
-                      ),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
@@ -282,18 +240,9 @@ Please confirm the following information:
                     labelStyle: TextStyle(color: Colors.white),
                     filled: true,
                     fillColor: Colors.blue[800]?.withOpacity(0.3),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue[800]!),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue[800]!),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue[800]!),
-                    ),
+                    border: OutlineInputBorder(),
                     hintText: 'MM/DD/YYYY...',
                     hintStyle: TextStyle(color: Colors.white54),
-                    prefixIcon: Icon(Icons.calendar_today, color: Colors.white),
                   ),
                   style: GoogleFonts.montserrat(color: Colors.white),
                   readOnly: true,
@@ -305,30 +254,16 @@ Please confirm the following information:
             // Address Field
             TextFormField(
               controller: _addressController,
-              maxLength: 100,
               decoration: InputDecoration(
                 labelText: 'Address',
                 labelStyle: TextStyle(color: Colors.white),
                 filled: true,
                 fillColor: Colors.blue[800]?.withOpacity(0.3),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue[800]!),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue[800]!),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue[800]!),
-                ),
+                border: OutlineInputBorder(),
                 hintText: 'Barangay, City...',
                 hintStyle: TextStyle(color: Colors.white54),
-                prefixIcon: Icon(Icons.location_on, color: Colors.white),
               ),
               style: GoogleFonts.montserrat(color: Colors.white),
-              buildCounter: (context,
-                  {required currentLength, required isFocused, maxLength}) {
-                return null; // Prevent showing the "0/100" text
-              },
             ),
             SizedBox(height: 20),
 
@@ -342,52 +277,11 @@ Please confirm the following information:
               ),
               child: Text(
                 'Sign Up',
-                style: GoogleFonts.montserrat(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
+                style: GoogleFonts.montserrat(color: Colors.white),
               ),
             ),
 
             SizedBox(height: 20),
-
-            // Terms and Conditions
-            RichText(
-              text: TextSpan(
-                style: GoogleFonts.montserrat(
-                  color: Colors.white,
-                  fontSize: 12,
-                ),
-                children: [
-                  TextSpan(text: 'By signing up, you agree to\n'),
-                  TextSpan(
-                    text: 'I-READ\'s Terms of Service and Privacy Policy.',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      decoration: TextDecoration.underline,
-                    ),
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = () {
-                        // Define action for tapping the terms link
-                      },
-                  ),
-                ],
-              ),
-              textAlign: TextAlign.center,
-            ),
-
-            SizedBox(height: 20),
-
-            // Full Progress Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: LinearProgressIndicator(
-                value: 1.0, // Full progress for the last page
-                backgroundColor: Colors.grey[400],
-                color: Colors.blue,
-              ),
-            ),
           ],
         ),
       ),
