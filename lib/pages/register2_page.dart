@@ -1,9 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart'; // For FilteringTextInputFormatter
 import 'package:intl/intl.dart'; // For date formatting
+import 'package:firebase_auth/firebase_auth.dart';
+import '../functions/form_data.dart'; // Adjust according to your structure
 import '../mainmenu/home_menu.dart'; // Adjust import according to your structure
-import 'package:firebase_core/firebase_core.dart';
 
 class Register2Page extends StatefulWidget {
   final TextEditingController emailController;
@@ -25,6 +27,7 @@ class _Register2PageState extends State<Register2Page> {
   final TextEditingController _strandController = TextEditingController();
   final TextEditingController _birthdayController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final List<String> strands = [
     'Technical-Vocational-Livelihood (TVL)',
@@ -35,23 +38,25 @@ class _Register2PageState extends State<Register2Page> {
   @override
   void initState() {
     super.initState();
-    _initializeFirebase();
-  }
+    // Load values from FormData
+    _fullNameController.text = FormData().fullName;
+    _strandController.text = FormData().strand;
+    _birthdayController.text = FormData().birthday;
+    _addressController.text = FormData().address;
 
-  Future<void> _initializeFirebase() async {
-    await Firebase.initializeApp(
-      options: const FirebaseOptions(
-        apiKey: "AIzaSyBVfRzUF6fklJTckRC5n-G4WUKNy8qBj_o",
-        authDomain: "i-read-tentative.firebaseapp.com",
-        databaseURL:
-            "https://i-read-tentative-default-rtdb.asia-southeast1.firebasedatabase.app",
-        projectId: "i-read-tentative",
-        storageBucket: "i-read-tentative.appspot.com",
-        messagingSenderId: "211486070399",
-        appId: "1:211486070399:web:2edb63d1d51d58a51c514a",
-        measurementId: "G-64MRZZP3LD",
-      ),
-    );
+    // Add listeners to save input in real-time
+    _fullNameController.addListener(() {
+      FormData().fullName = _fullNameController.text;
+    });
+    _strandController.addListener(() {
+      FormData().strand = _strandController.text;
+    });
+    _birthdayController.addListener(() {
+      FormData().birthday = _birthdayController.text;
+    });
+    _addressController.addListener(() {
+      FormData().address = _addressController.text;
+    });
   }
 
   Future<void> _selectBirthday(BuildContext context) async {
@@ -81,7 +86,7 @@ class _Register2PageState extends State<Register2Page> {
     }
   }
 
-  void _confirmSignUp() {
+  Future<void> _confirmSignUp() async {
     if (_fullNameController.text.isEmpty ||
         _strandController.text.isEmpty ||
         _birthdayController.text.isEmpty ||
@@ -92,44 +97,39 @@ class _Register2PageState extends State<Register2Page> {
       return;
     }
 
-    String message = '''
-Please confirm the following information:
-- Email: ${widget.emailController.text}
-- Username: ${widget.usernameController.text}
-- Password: ${widget.passwordController.text}
-- Full Name: ${_fullNameController.text}
-- Strand: ${_strandController.text}
-- Birthday: ${_birthdayController.text}
-- Address: ${_addressController.text}
-''';
+    try {
+      UserCredential userCredential =
+          await _auth.createUserWithEmailAndPassword(
+        email: widget.emailController.text,
+        password: widget.passwordController.text,
+      );
 
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text('Confirm Sign Up'),
-        content: Text(message),
-        actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close dialog (No)
-            },
-            child: Text('No'),
+      // Store additional user details in FormData
+      FormData().fullName = _fullNameController.text;
+      FormData().strand = _strandController.text;
+      FormData().birthday = _birthdayController.text;
+      FormData().address = _addressController.text;
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (context) => HomeMenu(
+            username: widget.usernameController.text,
           ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(context).pop(); // Close dialog
-              Navigator.of(context).pushReplacement(
-                MaterialPageRoute(
-                    builder: (context) => HomeMenu(
-                          username: widget.usernameController.text,
-                        )),
-              );
-            },
-            child: Text('Yes'),
-          ),
-        ],
-      ),
-    );
+        ),
+      );
+    } on FirebaseAuthException catch (e) {
+      String message;
+      if (e.code == 'weak-password') {
+        message = 'The password provided is too weak.';
+      } else if (e.code == 'email-already-in-use') {
+        message = 'The account already exists for that email.';
+      } else {
+        message = 'An error occurred. Please try again.';
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message)),
+      );
+    }
   }
 
   @override
@@ -181,25 +181,37 @@ Please confirm the following information:
             // Full Name Field
             TextFormField(
               controller: _fullNameController,
+              maxLength: 50,
               decoration: InputDecoration(
                 labelText: 'Full Name',
                 labelStyle: TextStyle(color: Colors.white),
                 filled: true,
                 fillColor: Colors.blue[800]?.withOpacity(0.3),
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.blue[800]!),
+                ),
+                hintText: 'Enter Full Name here...',
+                hintStyle: TextStyle(color: Colors.white54),
+                prefixIcon: Icon(Icons.person, color: Colors.white),
               ),
               style: GoogleFonts.montserrat(color: Colors.white),
+              inputFormatters: [
+                FilteringTextInputFormatter.deny(
+                    RegExp(r'\d')), // Disallow numbers
+              ],
             ),
             SizedBox(height: 20),
 
-            // Strand ComboBox
+            // Strand ComboBox with Icon
             InputDecorator(
               decoration: InputDecoration(
                 labelText: 'Strand',
                 labelStyle: TextStyle(color: Colors.white),
                 filled: true,
                 fillColor: Colors.blue[800]?.withOpacity(0.3),
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.blue[800]!),
+                ),
               ),
               child: DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
@@ -211,8 +223,14 @@ Please confirm the following information:
                   items: strands.map((String strand) {
                     return DropdownMenuItem<String>(
                       value: strand,
-                      child:
+                      child: Row(
+                        children: [
+                          Icon(Icons.school,
+                              color: Colors.white), // Strand icon
+                          SizedBox(width: 10),
                           Text(strand, style: TextStyle(color: Colors.white)),
+                        ],
+                      ),
                     );
                   }).toList(),
                   onChanged: (String? newValue) {
@@ -240,9 +258,12 @@ Please confirm the following information:
                     labelStyle: TextStyle(color: Colors.white),
                     filled: true,
                     fillColor: Colors.blue[800]?.withOpacity(0.3),
-                    border: OutlineInputBorder(),
+                    border: OutlineInputBorder(
+                      borderSide: BorderSide(color: Colors.blue[800]!),
+                    ),
                     hintText: 'MM/DD/YYYY...',
                     hintStyle: TextStyle(color: Colors.white54),
+                    prefixIcon: Icon(Icons.calendar_today, color: Colors.white),
                   ),
                   style: GoogleFonts.montserrat(color: Colors.white),
                   readOnly: true,
@@ -254,14 +275,18 @@ Please confirm the following information:
             // Address Field
             TextFormField(
               controller: _addressController,
+              maxLength: 100,
               decoration: InputDecoration(
                 labelText: 'Address',
                 labelStyle: TextStyle(color: Colors.white),
                 filled: true,
                 fillColor: Colors.blue[800]?.withOpacity(0.3),
-                border: OutlineInputBorder(),
+                border: OutlineInputBorder(
+                  borderSide: BorderSide(color: Colors.blue[800]!),
+                ),
                 hintText: 'Barangay, City...',
                 hintStyle: TextStyle(color: Colors.white54),
+                prefixIcon: Icon(Icons.location_on, color: Colors.white),
               ),
               style: GoogleFonts.montserrat(color: Colors.white),
             ),
@@ -277,11 +302,52 @@ Please confirm the following information:
               ),
               child: Text(
                 'Sign Up',
-                style: GoogleFonts.montserrat(color: Colors.white),
+                style: GoogleFonts.montserrat(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
 
             SizedBox(height: 20),
+
+            // Terms and Conditions
+            RichText(
+              text: TextSpan(
+                style: GoogleFonts.montserrat(
+                  color: Colors.white,
+                  fontSize: 12,
+                ),
+                children: [
+                  TextSpan(text: 'By signing up, you agree to\n'),
+                  TextSpan(
+                    text: 'I-READ\'s Terms of Service and Privacy Policy.',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.underline,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () {
+                        // Define action for tapping the terms link
+                      },
+                  ),
+                ],
+              ),
+              textAlign: TextAlign.center,
+            ),
+
+            SizedBox(height: 20),
+
+            // Full Progress Bar
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 20.0),
+              child: LinearProgressIndicator(
+                value: 1.0, // Full progress for the last page
+                backgroundColor: Colors.grey[400],
+                color: Colors.blue,
+              ),
+            ),
           ],
         ),
       ),

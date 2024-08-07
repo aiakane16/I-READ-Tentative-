@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'firebase_options.dart';
 import 'pages/splash_page.dart';
 import 'pages/login_page.dart';
 import 'pages/register_page.dart';
@@ -10,9 +11,10 @@ import 'mainmenu/settings_menu.dart';
 import 'package:firebase_core/firebase_core.dart';
 
 void main() async {
-  WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp();
-  runApp(MyApp());
+  WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter is initialized
+  await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform); // Initialize Firebase
+  runApp(MyApp()); // Run your app
 }
 
 class MyApp extends StatelessWidget {
