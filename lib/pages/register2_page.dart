@@ -7,22 +7,23 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../functions/form_data.dart'; // Adjust according to your structure
 import '../mainmenu/home_menu.dart'; // Adjust import according to your structure
 
-class Register2Page extends StatefulWidget {
+class PersonalInfoPage extends StatefulWidget {
   final TextEditingController emailController;
   final TextEditingController usernameController;
   final TextEditingController passwordController;
 
-  Register2Page({
+  PersonalInfoPage({
     required this.emailController,
     required this.usernameController,
     required this.passwordController,
+    required String userId,
   });
 
   @override
-  _Register2PageState createState() => _Register2PageState();
+  _PersonalInfoPageState createState() => _PersonalInfoPageState();
 }
 
-class _Register2PageState extends State<Register2Page> {
+class _PersonalInfoPageState extends State<PersonalInfoPage> {
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _strandController = TextEditingController();
   final TextEditingController _birthdayController = TextEditingController();
@@ -84,6 +85,42 @@ class _Register2PageState extends State<Register2Page> {
         });
       }
     }
+  }
+
+  void _showConfirmationDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Your Details'),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: <Widget>[
+                Text('Full Name: ${_fullNameController.text}'),
+                Text('Strand: ${_strandController.text}'),
+                Text('Birthday: ${_birthdayController.text}'),
+                Text('Address: ${_addressController.text}'),
+              ],
+            ),
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Confirm'),
+              onPressed: () {
+                _confirmSignUp();
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _confirmSignUp() async {
@@ -294,7 +331,7 @@ class _Register2PageState extends State<Register2Page> {
 
             // Sign Up Button
             ElevatedButton(
-              onPressed: _confirmSignUp,
+              onPressed: _showConfirmationDialog,
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.blue[600],
                 padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),

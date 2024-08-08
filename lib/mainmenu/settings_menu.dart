@@ -49,7 +49,7 @@ class SettingsMenu extends StatelessWidget {
         ),
         onTap: () {
           if (isLogout) {
-            Navigator.of(context).pushReplacementNamed('/splash_page');
+            Navigator.of(context).pushReplacementNamed('/');
           }
           // Add other navigation logic here if needed
         },

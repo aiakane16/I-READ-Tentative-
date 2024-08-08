@@ -83,10 +83,11 @@ class _RegisterPageState extends State<RegisterPage> {
     if (_formKey.currentState!.validate()) {
       Navigator.of(context).push(
         MaterialPageRoute(
-          builder: (context) => Register2Page(
+          builder: (context) => PersonalInfoPage(
             emailController: _emailController,
             usernameController: _usernameController,
             passwordController: _passwordController,
+            userId: '',
           ),
         ),
       );
@@ -150,7 +151,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
                 validator: _validateEmail,
-                // Remove character counter display
                 buildCounter: (context,
                     {required currentLength, required isFocused, maxLength}) {
                   return null; // Prevent showing the "0/30" text
@@ -174,7 +174,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
                 validator: _validateUsername,
-                // Remove character counter display
                 buildCounter: (context,
                     {required currentLength, required isFocused, maxLength}) {
                   return null; // Prevent showing the "0/15" text
@@ -208,7 +207,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
                 validator: _validatePassword,
-                // Remove character counter display
                 buildCounter: (context,
                     {required currentLength, required isFocused, maxLength}) {
                   return null; // Prevent showing the "0/10" text
@@ -242,7 +240,6 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
                 validator: _validateConfirmPassword,
-                // Remove character counter display
                 buildCounter: (context,
                     {required currentLength, required isFocused, maxLength}) {
                   return null; // Prevent showing the "0/10" text
