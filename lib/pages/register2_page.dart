@@ -1,3 +1,4 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -96,6 +97,9 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           content: SingleChildScrollView(
             child: ListBody(
               children: <Widget>[
+                Text('Email: ${widget.emailController.text}'),
+                Text('Username: ${widget.usernameController.text}'),
+                Text('Password: ${widget.passwordController.text}'),
                 Text('Full Name: ${_fullNameController.text}'),
                 Text('Strand: ${_strandController.text}'),
                 Text('Birthday: ${_birthdayController.text}'),
@@ -141,11 +145,30 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         password: widget.passwordController.text,
       );
 
-      // Store additional user details in FormData
-      FormData().fullName = _fullNameController.text;
-      FormData().strand = _strandController.text;
-      FormData().birthday = _birthdayController.text;
-      FormData().address = _addressController.text;
+      // Check if the user already exists in Firestore
+      var userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userCredential.user!.uid)
+          .get();
+
+      if (!userDoc.exists) {
+        // Store additional user details in Firestore
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userCredential.user!.uid)
+            .set({
+          'fullName': _fullNameController.text,
+          'strand': _strandController.text,
+          'birthday': _birthdayController.text,
+          'address': _addressController.text,
+          'email': widget.emailController.text,
+          'username': widget.usernameController.text,
+        });
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('User already exists in Firestore')),
+        );
+      }
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -236,6 +259,10 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                 FilteringTextInputFormatter.deny(
                     RegExp(r'\d')), // Disallow numbers
               ],
+              buildCounter: (context,
+                  {required currentLength, maxLength, required isFocused}) {
+                return null; // Prevent showing the "0/50" text
+              },
             ),
             SizedBox(height: 20),
 
@@ -304,6 +331,10 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                   ),
                   style: GoogleFonts.montserrat(color: Colors.white),
                   readOnly: true,
+                  buildCounter: (context,
+                      {required currentLength, maxLength, required isFocused}) {
+                    return null; // Prevent showing the "0/10" text
+                  },
                 ),
               ),
             ),
@@ -326,6 +357,10 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                 prefixIcon: Icon(Icons.location_on, color: Colors.white),
               ),
               style: GoogleFonts.montserrat(color: Colors.white),
+              buildCounter: (context,
+                  {required currentLength, maxLength, required isFocused}) {
+                return null; // Prevent showing the "0/100" text
+              },
             ),
             SizedBox(height: 20),
 

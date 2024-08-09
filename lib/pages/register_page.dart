@@ -79,18 +79,38 @@ class _RegisterPageState extends State<RegisterPage> {
     });
   }
 
-  void _handleNext() {
+  void _handleNext() async {
     if (_formKey.currentState!.validate()) {
-      Navigator.of(context).push(
-        MaterialPageRoute(
-          builder: (context) => PersonalInfoPage(
-            emailController: _emailController,
-            usernameController: _usernameController,
-            passwordController: _passwordController,
-            userId: '',
+      try {
+        // Check if email already exists in Firestore
+        var emailQuery = await _firestore
+            .collection('users')
+            .where('email', isEqualTo: _emailController.text)
+            .get();
+
+        if (emailQuery.docs.isNotEmpty) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Please input a different email')),
+          );
+          return;
+        }
+
+        // Proceed to the PersonalInfoPage if email is valid
+        Navigator.of(context).push(
+          MaterialPageRoute(
+            builder: (context) => PersonalInfoPage(
+              emailController: _emailController,
+              usernameController: _usernameController,
+              passwordController: _passwordController,
+              userId: '', // Placeholder for userId
+            ),
           ),
-        ),
-      );
+        );
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error checking email: ${e.toString()}')),
+        );
+      }
     }
   }
 
@@ -244,14 +264,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     {required currentLength, required isFocused, maxLength}) {
                   return null; // Prevent showing the "0/10" text
                 },
-              ),
-              SizedBox(height: 20),
-
-              // Progress Bar
-              LinearProgressIndicator(
-                value: 2 / 3, // Set progress to 2/3
-                backgroundColor: Colors.grey[400],
-                color: Colors.blue,
               ),
               SizedBox(height: 20),
 
