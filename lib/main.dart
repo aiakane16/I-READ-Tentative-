@@ -42,7 +42,11 @@ class MyApp extends StatelessWidget {
           );
         },
         '/home': (context) => HomeMenu(username: ''),
-        '/modules_menu': (context) => ModulesMenu(),
+        '/modules_menu': (context) => ModulesMenu(
+              onModulesUpdated: (updatedModules) {
+                // Handle updates if necessary; this can be a placeholder
+              },
+            ),
         '/addfield_menu': (context) => AddFieldMenu(),
         '/profile_menu': (context) => ProfilesMenu(),
         '/settings_menu': (context) => SettingsMenu(),

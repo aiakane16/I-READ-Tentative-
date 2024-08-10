@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'dart:math';
 
 class HomeMenu extends StatefulWidget {
   final String username;
@@ -11,11 +14,72 @@ class HomeMenu extends StatefulWidget {
 }
 
 class _HomeMenuState extends State<HomeMenu> {
-  String moduleStatus1 = 'NOT STARTED';
-  String moduleStatus2 = 'NOT STARTED';
+  List<Map<String, dynamic>> moduleTitles = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDownloadedModules();
+  }
+
+  Future<void> _loadDownloadedModules() async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    var userDoc =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+
+    if (userDoc.exists) {
+      var modules = userDoc.data()?['downloadedModules'] as List<dynamic> ?? [];
+      setState(() {
+        moduleTitles = List<Map<String, dynamic>>.from(modules.map((module) =>
+            {'title': module, 'difficulty': 'EASY', 'questions': 11}));
+      });
+    }
+  }
+
+  List<Map<String, dynamic>> _getRandomModules() {
+    final random = Random();
+    if (moduleTitles.length <= 2) {
+      return moduleTitles;
+    } else {
+      return (moduleTitles.toList()..shuffle(random)).sublist(0, 2);
+    }
+  }
+
+  void _showModuleDialog(Map<String, dynamic> module) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text(module['title']),
+          content: Text(
+            'Difficulty: ${module['difficulty']}\n\n'
+            'This module includes ${module['questions']} items of questions related to ${module['title']}.\n'
+            'Are you ready?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Cancel action
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close the dialog
+                // Navigate to the module questions screen here
+              },
+              child: Text('Ready!'),
+            ),
+          ],
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
+    List<Map<String, dynamic>> selectedModules = _getRandomModules();
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -67,16 +131,13 @@ class _HomeMenuState extends State<HomeMenu> {
             SizedBox(height: 10),
             Expanded(
               child: ListView(
-                children: [
-                  _buildModuleCard(context, 'Basics of Subject Verb Agreement',
-                      moduleStatus1, 'MEDIUM', '1,000 XP'),
-                  _buildModuleCard(
-                      context,
-                      'Singular and Plural Nouns (Part II)',
-                      moduleStatus2,
-                      'EASY',
-                      '500 XP'),
-                ],
+                children: selectedModules.map((module) {
+                  return GestureDetector(
+                    onTap: () => _showModuleDialog(module),
+                    child: _buildModuleCard(context, module['title'],
+                        'NOT STARTED', module['difficulty'], '1,000 XP'),
+                  );
+                }).toList(),
               ),
             ),
           ],

@@ -2,7 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../firestore/firestore_user.dart';
+import 'modules_menu.dart';
 
 class AddFieldMenu extends StatefulWidget {
   @override
@@ -17,7 +17,58 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
     'Word Pronunciation',
   ];
 
-  void downloadModules(String field) async {
+  Map<String, List<String>> availableModules = {};
+  List<String> downloadedModules = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDownloadedModules();
+    _loadAvailableModules();
+  }
+
+  Future<void> _loadDownloadedModules() async {
+    try {
+      String userId = FirebaseAuth.instance.currentUser!.uid;
+      var userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (userDoc.exists) {
+        setState(() {
+          downloadedModules =
+              List<String>.from(userDoc.data()?['downloadedModules'] ?? []);
+        });
+      }
+    } catch (e) {
+      _showErrorDialog('Error loading downloaded modules: $e');
+    }
+  }
+
+  Future<void> _loadAvailableModules() async {
+    try {
+      for (String field in fields) {
+        var modulesSnapshot = await FirebaseFirestore.instance
+            .collection('fields')
+            .doc(field)
+            .get();
+
+        if (modulesSnapshot.exists) {
+          var modules =
+              modulesSnapshot.data()?['modules'] as List<dynamic>? ?? [];
+          setState(() {
+            availableModules[field] =
+                modules.map((module) => module['title'] as String).toList();
+          });
+        }
+      }
+    } catch (e) {
+      _showErrorDialog('Error loading available modules: $e');
+    }
+  }
+
+  void downloadModules(BuildContext context, String field) async {
     try {
       var modulesSnapshot = await FirebaseFirestore.instance
           .collection('fields')
@@ -25,51 +76,41 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
           .get();
 
       if (modulesSnapshot.exists) {
-        var modules = modulesSnapshot.data()?['modules'] as List<dynamic>;
-        if (modules != null && modules.isNotEmpty) {
-          // Create a list of module titles
-          List<String> moduleTitles = [];
-          for (var module in modules) {
-            moduleTitles.add(module['title'] as String);
+        var modules =
+            modulesSnapshot.data()?['modules'] as List<dynamic>? ?? [];
+        if (modules.isNotEmpty) {
+          List<String> moduleTitles =
+              modules.map((module) => module['title'] as String).toList();
+
+          bool allDownloaded = moduleTitles
+              .every((module) => downloadedModules.contains(module));
+
+          if (allDownloaded) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text("The field's modules are already downloaded!")),
+            );
+            return;
           }
 
-          // Show dialog with module titles
           showDialog(
             context: context,
             builder: (context) {
               return AlertDialog(
                 title: Text('Download Modules'),
-                content: Text(
-                  'The modules you will download are:\n\n' +
-                      moduleTitles.join('\n'),
-                ),
+                content: Text('The modules you will download are:\n\n' +
+                    moduleTitles.join('\n')),
                 actions: [
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context).pop(); // Cancel action
+                      Navigator.of(context).pop();
                     },
                     child: Text('Cancel'),
                   ),
                   TextButton(
                     onPressed: () async {
-                      // Handle download action here for the selected field
-                      await (List<String> moduleTitles) async {
-                        // Assuming you have the user ID
-                        String userId = FirebaseAuth.instance.currentUser!.uid;
-                        await FirebaseFirestore.instance
-                            .collection('users')
-                            .doc(userId)
-                            .update({
-                          'downloadedModules':
-                              FieldValue.arrayUnion(moduleTitles),
-                        });
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                              content:
-                                  Text('Modules downloaded successfully!')),
-                        );
-                      }(moduleTitles);
-                      Navigator.of(context).pop(); // Close the dialog
+                      await _addDownloadedModules(moduleTitles);
+                      Navigator.of(context).pop();
                     },
                     child: Text('Download'),
                   ),
@@ -88,15 +129,21 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
     }
   }
 
-// Update _addDownloadedModules to accept specific modules
   Future<void> _addDownloadedModules(List<String> moduleTitles) async {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-    await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'downloadedModules': FieldValue.arrayUnion(moduleTitles),
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Modules downloaded successfully!')),
-    );
+    try {
+      String userId = FirebaseAuth.instance.currentUser!.uid;
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'downloadedModules': FieldValue.arrayUnion(moduleTitles),
+      });
+      setState(() {
+        downloadedModules.addAll(moduleTitles);
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Modules downloaded successfully!')),
+      );
+    } catch (e) {
+      _showErrorDialog('Error downloading modules: $e');
+    }
   }
 
   void _showErrorDialog(String message) {
@@ -109,7 +156,7 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
               },
               child: Text('OK'),
             ),
@@ -142,12 +189,18 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
             Expanded(
               child: ListView(
                 children: fields.map((field) {
+                  bool isClickable = availableModules[field]?.any(
+                          (module) => !downloadedModules.contains(module)) ??
+                      true;
                   return Container(
                     margin: EdgeInsets.symmetric(vertical: 10),
                     child: ElevatedButton(
-                      onPressed: () => downloadModules(field),
+                      onPressed: isClickable
+                          ? () => downloadModules(context, field)
+                          : null,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[500],
+                        backgroundColor:
+                            isClickable ? Colors.blue[500] : Colors.grey,
                         padding: EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
@@ -169,36 +222,47 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
       bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
-}
 
-Widget _buildBottomNavigationBar(BuildContext context) {
-  return BottomNavigationBar(
-    items: [
-      BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-      BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
-      BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),
-      BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-      BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
-    ],
-    currentIndex: 2,
-    selectedItemColor: Colors.blue[900],
-    unselectedItemColor: Colors.lightBlue,
-    backgroundColor: Colors.white,
-    onTap: (index) {
-      switch (index) {
-        case 0:
-          Navigator.pushNamed(context, '/home');
-          break;
-        case 1:
-          Navigator.pushNamed(context, '/modules_menu');
-          break;
-        case 3:
-          Navigator.pushNamed(context, '/profile_menu');
-          break;
-        case 4:
-          Navigator.pushNamed(context, '/settings_menu');
-          break;
-      }
-    },
-  );
+  Widget _buildBottomNavigationBar(BuildContext context) {
+    return BottomNavigationBar(
+      items: [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+        BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
+        BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+        BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+      ],
+      currentIndex: 2,
+      selectedItemColor: Colors.blue[900],
+      unselectedItemColor: Colors.lightBlue,
+      backgroundColor: Colors.white,
+      onTap: (index) {
+        switch (index) {
+          case 0:
+            Navigator.pushNamed(context, '/home');
+            break;
+          case 1:
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => ModulesMenu(
+                  onModulesUpdated: (updatedModules) {
+                    setState(() {
+                      downloadedModules = updatedModules;
+                    });
+                  },
+                ),
+              ),
+            );
+            break;
+          case 3:
+            Navigator.pushNamed(context, '/profile_menu');
+            break;
+          case 4:
+            Navigator.pushNamed(context, '/settings_menu');
+            break;
+        }
+      },
+    );
+  }
 }
