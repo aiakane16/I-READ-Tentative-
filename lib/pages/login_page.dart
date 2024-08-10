@@ -1,7 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import '../firestore/firestore_user.dart';
 
 class LoginPage extends StatefulWidget {
   @override
@@ -9,12 +9,12 @@ class LoginPage extends StatefulWidget {
 }
 
 class _LoginPageState extends State<LoginPage> {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirestoreUser _firestoreUser = FirestoreUser();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  bool _rememberMe = false; // Track the state of the checkbox
-  bool _isPasswordVisible = false; // Track password visibility
+  bool _rememberMe = false;
+  bool _isPasswordVisible = false;
   String? _emailError;
   String? _passwordError;
 
@@ -73,11 +73,10 @@ class _LoginPageState extends State<LoginPage> {
 
     if (_emailError == null && _passwordError == null) {
       try {
-        await _auth.signInWithEmailAndPassword(
-            email: email, password: password);
+        await _firestoreUser.signIn(
+            email, password); // Use FirestoreUser for login
         Navigator.of(context).pushReplacementNamed('/home');
       } catch (e) {
-        // Show SnackBar for error
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Please input a registered user account')),
         );
@@ -102,31 +101,23 @@ class _LoginPageState extends State<LoginPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Image.asset(
-                'assets/i_read_pic.png',
-                width: 120,
-                height: 120,
-              ),
+              Image.asset('assets/i_read_pic.png', width: 120, height: 120),
               SizedBox(height: 20),
-              Text(
-                'where learning gets better.',
-                style: TextStyle(color: Colors.white, fontSize: 16),
-              ),
+              Text('where learning gets better.',
+                  style: TextStyle(color: Colors.white, fontSize: 16)),
               SizedBox(height: 10),
               Divider(color: Colors.white, thickness: 1),
               SizedBox(height: 20),
-              Text(
-                'Login',
-                style: GoogleFonts.montserrat(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
+              Text('Login',
+                  style: GoogleFonts.montserrat(
+                      color: Colors.white,
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold)),
               SizedBox(height: 20),
+              // Email Field
               TextFormField(
                 controller: _emailController,
-                maxLength: 30, // Keep the restriction
+                maxLength: 30,
                 decoration: InputDecoration(
                   labelText: 'E-Mail',
                   labelStyle: TextStyle(color: Colors.white),
@@ -141,22 +132,20 @@ class _LoginPageState extends State<LoginPage> {
                 onChanged: _validateEmail,
                 buildCounter: (context,
                     {required currentLength, maxLength, required isFocused}) {
-                  return null; // Remove character count display
+                  return null;
                 },
               ),
               if (_emailError != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    _emailError!,
-                    style: TextStyle(color: Colors.red),
-                  ),
+                  child:
+                      Text(_emailError!, style: TextStyle(color: Colors.red)),
                 ),
               SizedBox(height: 20),
               TextFormField(
                 controller: _passwordController,
                 obscureText: !_isPasswordVisible,
-                maxLength: 10, // Keep the restriction
+                maxLength: 10,
                 decoration: InputDecoration(
                   labelText: 'Password',
                   labelStyle: TextStyle(color: Colors.white),
@@ -168,11 +157,10 @@ class _LoginPageState extends State<LoginPage> {
                   prefixIcon: Icon(Icons.lock, color: Colors.white),
                   suffixIcon: IconButton(
                     icon: Icon(
-                      _isPasswordVisible
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                      color: Colors.white,
-                    ),
+                        _isPasswordVisible
+                            ? Icons.visibility
+                            : Icons.visibility_off,
+                        color: Colors.white),
                     onPressed: () {
                       setState(() {
                         _isPasswordVisible = !_isPasswordVisible;
@@ -184,16 +172,14 @@ class _LoginPageState extends State<LoginPage> {
                 onChanged: _validatePassword,
                 buildCounter: (context,
                     {required currentLength, maxLength, required isFocused}) {
-                  return null; // Remove character count display
+                  return null;
                 },
               ),
               if (_passwordError != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(
-                    _passwordError!,
-                    style: TextStyle(color: Colors.red),
-                  ),
+                  child: Text(_passwordError!,
+                      style: TextStyle(color: Colors.red)),
                 ),
               SizedBox(height: 20),
               Row(
@@ -207,10 +193,8 @@ class _LoginPageState extends State<LoginPage> {
                     },
                     activeColor: Colors.blue[600],
                   ),
-                  Text(
-                    'Remember Me',
-                    style: GoogleFonts.montserrat(color: Colors.white),
-                  ),
+                  Text('Remember Me',
+                      style: GoogleFonts.montserrat(color: Colors.white)),
                 ],
               ),
               SizedBox(height: 20),
@@ -221,10 +205,8 @@ class _LoginPageState extends State<LoginPage> {
                   padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
                   minimumSize: Size(double.infinity, 50),
                 ),
-                child: Text(
-                  'Login',
-                  style: GoogleFonts.montserrat(color: Colors.white),
-                ),
+                child: Text('Login',
+                    style: GoogleFonts.montserrat(color: Colors.white)),
               ),
               SizedBox(height: 20),
               RichText(

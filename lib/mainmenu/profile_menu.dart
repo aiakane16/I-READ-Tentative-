@@ -1,7 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../firestore/firestore_user.dart';
 
-class ProfileMenu extends StatelessWidget {
+class ProfilesMenu extends StatefulWidget {
+  @override
+  _ProfilesMenuState createState() => _ProfilesMenuState();
+}
+
+class _ProfilesMenuState extends State<ProfilesMenu> {
+  final FirestoreUser _firestoreUser = FirestoreUser();
+  User? _currentUser;
+  Map<String, dynamic>? userData;
+
+  @override
+  void initState() {
+    super.initState();
+    _currentUser = FirebaseAuth.instance.currentUser;
+    _loadUserData();
+  }
+
+  Future<void> _loadUserData() async {
+    if (_currentUser != null) {
+      userData = await _firestoreUser.getUserData(_currentUser!.uid);
+      setState(() {});
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(

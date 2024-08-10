@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => HomeMenu(username: ''),
         '/modules_menu': (context) => ModulesMenu(),
         '/addfield_menu': (context) => AddFieldMenu(),
-        '/profile_menu': (context) => ProfileMenu(),
+        '/profile_menu': (context) => ProfilesMenu(),
         '/settings_menu': (context) => SettingsMenu(),
         // Other routes can be added here
       },

@@ -1,12 +1,12 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:flutter/services.dart'; // For FilteringTextInputFormatter
-import 'package:intl/intl.dart'; // For date formatting
+import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../functions/form_data.dart'; // Adjust according to your structure
-import '../mainmenu/home_menu.dart'; // Adjust import according to your structure
+import '../functions/form_data.dart';
+import '../mainmenu/home_menu.dart';
+import '../firestore/firestore_user.dart'; // Import FirestoreUser
 
 class PersonalInfoPage extends StatefulWidget {
   final TextEditingController emailController;
@@ -25,11 +25,11 @@ class PersonalInfoPage extends StatefulWidget {
 }
 
 class _PersonalInfoPageState extends State<PersonalInfoPage> {
+  final FirestoreUser _firestoreUser = FirestoreUser();
   final TextEditingController _fullNameController = TextEditingController();
   final TextEditingController _strandController = TextEditingController();
   final TextEditingController _birthdayController = TextEditingController();
   final TextEditingController _addressController = TextEditingController();
-  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   final List<String> strands = [
     'Technical-Vocational-Livelihood (TVL)',
@@ -63,7 +63,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
   Future<void> _selectBirthday(BuildContext context) async {
     DateTime now = DateTime.now();
-
     DateTime? pickedDate = await showDatePicker(
       context: context,
       initialDate: now,
@@ -139,36 +138,18 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     }
 
     try {
-      UserCredential userCredential =
-          await _auth.createUserWithEmailAndPassword(
-        email: widget.emailController.text,
-        password: widget.passwordController.text,
-      );
-
-      // Check if the user already exists in Firestore
-      var userDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userCredential.user!.uid)
-          .get();
-
-      if (!userDoc.exists) {
-        // Store additional user details in Firestore
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userCredential.user!.uid)
-            .set({
+      await _firestoreUser.registerUser(
+        widget.emailController.text,
+        widget.passwordController.text,
+        {
           'fullName': _fullNameController.text,
           'strand': _strandController.text,
           'birthday': _birthdayController.text,
           'address': _addressController.text,
           'email': widget.emailController.text,
           'username': widget.usernameController.text,
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('User already exists in Firestore')),
-        );
-      }
+        },
+      );
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
@@ -256,12 +237,11 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
               ),
               style: GoogleFonts.montserrat(color: Colors.white),
               inputFormatters: [
-                FilteringTextInputFormatter.deny(
-                    RegExp(r'\d')), // Disallow numbers
+                FilteringTextInputFormatter.deny(RegExp(r'\d')),
               ],
               buildCounter: (context,
                   {required currentLength, maxLength, required isFocused}) {
-                return null; // Prevent showing the "0/50" text
+                return null;
               },
             ),
             SizedBox(height: 20),
@@ -289,8 +269,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                       value: strand,
                       child: Row(
                         children: [
-                          Icon(Icons.school,
-                              color: Colors.white), // Strand icon
+                          Icon(Icons.school, color: Colors.white),
                           SizedBox(width: 10),
                           Text(strand, style: TextStyle(color: Colors.white)),
                         ],
@@ -333,7 +312,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                   readOnly: true,
                   buildCounter: (context,
                       {required currentLength, maxLength, required isFocused}) {
-                    return null; // Prevent showing the "0/10" text
+                    return null;
                   },
                 ),
               ),
@@ -359,7 +338,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
               style: GoogleFonts.montserrat(color: Colors.white),
               buildCounter: (context,
                   {required currentLength, maxLength, required isFocused}) {
-                return null; // Prevent showing the "0/100" text
+                return null;
               },
             ),
             SizedBox(height: 20),

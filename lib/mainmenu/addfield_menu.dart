@@ -1,6 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../firestore/firestore_user.dart';
 
 class AddFieldMenu extends StatefulWidget {
   @override
@@ -17,7 +19,6 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
 
   void downloadModules(String field) async {
     try {
-      // Fetch modules from Firestore
       var modulesSnapshot = await FirebaseFirestore.instance
           .collection('fields')
           .doc(field)
@@ -26,9 +27,11 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
       if (modulesSnapshot.exists) {
         var modules = modulesSnapshot.data()?['modules'] as List<dynamic>;
         if (modules != null && modules.isNotEmpty) {
-          List<String> moduleTitles = modules.map((module) {
-            return module['title'] as String;
-          }).toList();
+          // Create a list of module titles
+          List<String> moduleTitles = [];
+          for (var module in modules) {
+            moduleTitles.add(module['title'] as String);
+          }
 
           // Show dialog with module titles
           showDialog(
@@ -48,8 +51,24 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
                     child: Text('Cancel'),
                   ),
                   TextButton(
-                    onPressed: () {
-                      // Handle download action here
+                    onPressed: () async {
+                      // Handle download action here for the selected field
+                      await (List<String> moduleTitles) async {
+                        // Assuming you have the user ID
+                        String userId = FirebaseAuth.instance.currentUser!.uid;
+                        await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(userId)
+                            .update({
+                          'downloadedModules':
+                              FieldValue.arrayUnion(moduleTitles),
+                        });
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                              content:
+                                  Text('Modules downloaded successfully!')),
+                        );
+                      }(moduleTitles);
                       Navigator.of(context).pop(); // Close the dialog
                     },
                     child: Text('Download'),
@@ -59,17 +78,25 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
             },
           );
         } else {
-          // Handle case where modules are empty
           _showErrorDialog('No modules found for this field.');
         }
       } else {
-        // Handle case where document does not exist
         _showErrorDialog('Field not found.');
       }
     } catch (e) {
-      // Handle any errors
       _showErrorDialog('Error fetching modules: $e');
     }
+  }
+
+// Update _addDownloadedModules to accept specific modules
+  Future<void> _addDownloadedModules(List<String> moduleTitles) async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    await FirebaseFirestore.instance.collection('users').doc(userId).update({
+      'downloadedModules': FieldValue.arrayUnion(moduleTitles),
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Modules downloaded successfully!')),
+    );
   }
 
   void _showErrorDialog(String message) {
@@ -105,7 +132,7 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
         ),
         padding: const EdgeInsets.all(20.0),
         child: Column(
-          mainAxisAlignment: MainAxisAlignment.center, // Center the content
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Text(
               'Choose Your Field',
@@ -116,24 +143,20 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
               child: ListView(
                 children: fields.map((field) {
                   return Container(
-                    margin: EdgeInsets.symmetric(
-                        vertical: 10), // Spacing between buttons
+                    margin: EdgeInsets.symmetric(vertical: 10),
                     child: ElevatedButton(
                       onPressed: () => downloadModules(field),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Colors.blue[500], // Button color
-                        padding:
-                            EdgeInsets.symmetric(vertical: 16), // Button height
+                        backgroundColor: Colors.blue[500],
+                        padding: EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(30), // Rounded corners
+                          borderRadius: BorderRadius.circular(30),
                         ),
-                        textStyle: TextStyle(fontSize: 18), // Font size
+                        textStyle: TextStyle(fontSize: 18),
                       ),
                       child: Text(
                         field,
-                        style: GoogleFonts.montserrat(
-                            color: Colors.white), // Font style
+                        style: GoogleFonts.montserrat(color: Colors.white),
                       ),
                     ),
                   );
@@ -146,36 +169,36 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
       bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
+}
 
-  Widget _buildBottomNavigationBar(BuildContext context) {
-    return BottomNavigationBar(
-      items: [
-        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-        BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
-        BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),
-        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
-      ],
-      currentIndex: 2,
-      selectedItemColor: Colors.blue[900],
-      unselectedItemColor: Colors.lightBlue,
-      backgroundColor: Colors.white,
-      onTap: (index) {
-        switch (index) {
-          case 0:
-            Navigator.pushNamed(context, '/home');
-            break;
-          case 1:
-            Navigator.pushNamed(context, '/modules_menu');
-            break;
-          case 3:
-            Navigator.pushNamed(context, '/profile_menu');
-            break;
-          case 4:
-            Navigator.pushNamed(context, '/settings_menu');
-            break;
-        }
-      },
-    );
-  }
+Widget _buildBottomNavigationBar(BuildContext context) {
+  return BottomNavigationBar(
+    items: [
+      BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
+      BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
+      BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),
+      BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+      BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
+    ],
+    currentIndex: 2,
+    selectedItemColor: Colors.blue[900],
+    unselectedItemColor: Colors.lightBlue,
+    backgroundColor: Colors.white,
+    onTap: (index) {
+      switch (index) {
+        case 0:
+          Navigator.pushNamed(context, '/home');
+          break;
+        case 1:
+          Navigator.pushNamed(context, '/modules_menu');
+          break;
+        case 3:
+          Navigator.pushNamed(context, '/profile_menu');
+          break;
+        case 4:
+          Navigator.pushNamed(context, '/settings_menu');
+          break;
+      }
+    },
+  );
 }

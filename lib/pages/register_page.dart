@@ -1,10 +1,9 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'login_page.dart';
-import 'register2_page.dart'; // Import the PersonalInfoPage
+import 'register2_page.dart';
+import '../firestore/firestore_user.dart'; // Import FirestoreUser
 
 class RegisterPage extends StatefulWidget {
   @override
@@ -12,6 +11,7 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  final FirestoreUser _firestoreUser = FirestoreUser();
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
@@ -19,11 +19,8 @@ class _RegisterPageState extends State<RegisterPage> {
   final TextEditingController _confirmPasswordController =
       TextEditingController();
 
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
-  bool _isPasswordVisible = false; // Track password visibility
-  bool _isConfirmPasswordVisible = false; // Track confirm password visibility
+  bool _isPasswordVisible = false;
+  bool _isConfirmPasswordVisible = false;
 
   bool _isPasswordValid(String password) {
     return password.length >= 8 && password.length <= 10;
@@ -83,11 +80,8 @@ class _RegisterPageState extends State<RegisterPage> {
     if (_formKey.currentState!.validate()) {
       try {
         // Check if email already exists in Firestore
-        var emailQuery = await _firestore
-            .collection('users')
-            .where('email', isEqualTo: _emailController.text)
-            .get();
-
+        var emailQuery =
+            await _firestoreUser.checkEmailExists(_emailController.text);
         if (emailQuery.docs.isNotEmpty) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('Please input a different email')),
@@ -173,7 +167,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 validator: _validateEmail,
                 buildCounter: (context,
                     {required currentLength, required isFocused, maxLength}) {
-                  return null; // Prevent showing the "0/30" text
+                  return null;
                 },
               ),
               SizedBox(height: 20),
@@ -196,7 +190,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 validator: _validateUsername,
                 buildCounter: (context,
                     {required currentLength, required isFocused, maxLength}) {
-                  return null; // Prevent showing the "0/15" text
+                  return null;
                 },
               ),
               SizedBox(height: 20),
@@ -229,7 +223,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 validator: _validatePassword,
                 buildCounter: (context,
                     {required currentLength, required isFocused, maxLength}) {
-                  return null; // Prevent showing the "0/10" text
+                  return null;
                 },
               ),
               SizedBox(height: 20),
@@ -262,7 +256,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 validator: _validateConfirmPassword,
                 buildCounter: (context,
                     {required currentLength, required isFocused, maxLength}) {
-                  return null; // Prevent showing the "0/10" text
+                  return null;
                 },
               ),
               SizedBox(height: 20),
@@ -279,7 +273,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   'Next',
                   style: GoogleFonts.montserrat(
                     color: Colors.white,
-                    fontWeight: FontWeight.bold, // Make text bold
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ),
