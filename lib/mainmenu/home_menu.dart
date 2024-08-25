@@ -168,7 +168,8 @@ class _HomeMenuState extends State<HomeMenu> {
             Text('Status: $status',
                 style: GoogleFonts.montserrat(color: Colors.black)),
             Text('Difficulty: $difficulty',
-                style: GoogleFonts.montserrat(color: Colors.blue)),
+                style: GoogleFonts.montserrat(
+                    color: Colors.black)), // Change to default color
             Text('Reward: $reward',
                 style: GoogleFonts.montserrat(color: Colors.blue)),
           ],

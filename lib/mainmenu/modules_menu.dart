@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../quiz/readcomp_quiz.dart';
 
 class ModulesMenu extends StatefulWidget {
   final Function(List<String>) onModulesUpdated;
@@ -104,6 +105,68 @@ class _ModulesMenuState extends State<ModulesMenu> {
     );
   }
 
+  void _confirmDeleteModules() {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Warning'),
+          content: Text(
+            'Deleting modules will remove all your progress. Are you sure?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Cancel action
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                _deleteSelectedModules(); // Call deletion function
+                Navigator.of(context).pop(); // Close the dialog
+              },
+              child: Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showQuizConfirmationDialog(String moduleTitle) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Quiz Confirmation'),
+          content: Text('You will play a quiz related to $moduleTitle.'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Cancel action
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ReadCompQuiz(moduleTitle: moduleTitle),
+                  ),
+                );
+              },
+              child: Text('Play'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -119,9 +182,23 @@ class _ModulesMenuState extends State<ModulesMenu> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Hi, ${FirebaseAuth.instance.currentUser?.displayName ?? "User"}!',
-              style: GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Hi, ${FirebaseAuth.instance.currentUser?.displayName ?? "User"}!',
+                  style:
+                      GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
+                ),
+                IconButton(
+                  icon: Icon(Icons.delete, color: Colors.white),
+                  onPressed: () {
+                    setState(() {
+                      isDeleteMode = !isDeleteMode;
+                    });
+                  },
+                ),
+              ],
             ),
             SizedBox(height: 20),
             Expanded(
@@ -133,19 +210,31 @@ class _ModulesMenuState extends State<ModulesMenu> {
                     child: ListTile(
                       title: Text(
                         downloadedModules[index],
-                        style: GoogleFonts.montserrat(fontSize: 18),
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 18,
+                          color: Colors.blue,
+                        ),
                       ),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          SizedBox(
+                              height: 10), // Space between title and status
                           Text('Status: IN PROGRESS',
-                              style: TextStyle(color: Colors.grey)),
+                              style:
+                                  GoogleFonts.montserrat(color: Colors.black)),
                           Text('Difficulty: EASY',
-                              style: TextStyle(color: Colors.grey)),
+                              style:
+                                  GoogleFonts.montserrat(color: Colors.black)),
                           Text('Reward: 500 XP',
-                              style: TextStyle(color: Colors.grey)),
+                              style: GoogleFonts.montserrat(
+                                  color: Colors.lightBlue)),
                         ],
                       ),
+                      onTap: () {
+                        _showQuizConfirmationDialog(downloadedModules[index]);
+                      },
                       leading: isDeleteMode
                           ? Checkbox(
                               value: selectedModules[index],
@@ -155,14 +244,6 @@ class _ModulesMenuState extends State<ModulesMenu> {
                                 });
                               },
                             )
-                          : null,
-                      onTap: isDeleteMode
-                          ? () {
-                              setState(() {
-                                selectedModules[index] =
-                                    !selectedModules[index];
-                              });
-                            }
                           : null,
                     ),
                   );
@@ -175,12 +256,12 @@ class _ModulesMenuState extends State<ModulesMenu> {
       bottomNavigationBar: _buildBottomNavigationBar(context),
       floatingActionButton: isDeleteMode
           ? FloatingActionButton(
-              onPressed: _deleteSelectedModules,
+              onPressed: _confirmDeleteModules,
               backgroundColor: Colors.red,
-              child: Icon(Icons.delete),
+              child: Icon(Icons.delete, color: Colors.white),
             )
           : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
+      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 
