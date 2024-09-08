@@ -5,6 +5,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'modules_menu.dart';
 
 class AddFieldMenu extends StatefulWidget {
+  const AddFieldMenu({super.key});
+
   @override
   _AddFieldMenuState createState() => _AddFieldMenuState();
 }
@@ -19,10 +21,18 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
 
   Map<String, List<String>> availableModules = {};
   List<String> downloadedModules = [];
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
+    // Initialization that doesn't rely on inherited widgets
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Load data that depends on the context
     _loadDownloadedModules();
     _loadAvailableModules();
   }
@@ -65,6 +75,10 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
       }
     } catch (e) {
       _showErrorDialog('Error loading available modules: $e');
+    } finally {
+      setState(() {
+        isLoading = false; // Stop loading once modules are fetched
+      });
     }
   }
 
@@ -87,7 +101,7 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
 
           if (allDownloaded) {
             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
+              const SnackBar(
                   content: Text("The field's modules are already downloaded!")),
             );
             return;
@@ -97,22 +111,22 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
             context: context,
             builder: (context) {
               return AlertDialog(
-                title: Text('Download Modules'),
-                content: Text('The modules you will download are:\n\n' +
-                    moduleTitles.join('\n')),
+                title: const Text('Download Modules'),
+                content: Text(
+                    'The modules you will download are:\n\n${moduleTitles.join('\n')}'),
                 actions: [
                   TextButton(
                     onPressed: () {
                       Navigator.of(context).pop();
                     },
-                    child: Text('Cancel'),
+                    child: const Text('Cancel'),
                   ),
                   TextButton(
                     onPressed: () async {
                       await _addDownloadedModules(moduleTitles);
                       Navigator.of(context).pop();
                     },
-                    child: Text('Download'),
+                    child: const Text('Download'),
                   ),
                 ],
               );
@@ -139,7 +153,7 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
         downloadedModules.addAll(moduleTitles);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Modules downloaded successfully!')),
+        const SnackBar(content: Text('Modules downloaded successfully!')),
       );
     } catch (e) {
       _showErrorDialog('Error downloading modules: $e');
@@ -151,14 +165,14 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Error'),
+          title: const Text('Error'),
           content: Text(message),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('OK'),
+              child: const Text('OK'),
             ),
           ],
         );
@@ -178,46 +192,51 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
           ),
         ),
         padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              'Choose Your Field',
-              style: GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
-            ),
-            SizedBox(height: 20),
-            Expanded(
-              child: ListView(
-                children: fields.map((field) {
-                  bool isClickable = availableModules[field]?.any(
-                          (module) => !downloadedModules.contains(module)) ??
-                      true;
-                  return Container(
-                    margin: EdgeInsets.symmetric(vertical: 10),
-                    child: ElevatedButton(
-                      onPressed: isClickable
-                          ? () => downloadModules(context, field)
-                          : null,
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor:
-                            isClickable ? Colors.blue[500] : Colors.grey,
-                        padding: EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
-                        textStyle: TextStyle(fontSize: 18),
-                      ),
-                      child: Text(
-                        field,
-                        style: GoogleFonts.montserrat(color: Colors.white),
-                      ),
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Choose Your Field',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 24, color: Colors.white),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: ListView(
+                      children: fields.map((field) {
+                        bool isClickable = availableModules[field]?.any(
+                                (module) =>
+                                    !downloadedModules.contains(module)) ??
+                            true;
+                        return Container(
+                          margin: const EdgeInsets.symmetric(vertical: 10),
+                          child: ElevatedButton(
+                            onPressed: isClickable
+                                ? () => downloadModules(context, field)
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor:
+                                  isClickable ? Colors.blue[500] : Colors.grey,
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(30),
+                              ),
+                              textStyle: const TextStyle(fontSize: 18),
+                            ),
+                            child: Text(
+                              field,
+                              style:
+                                  GoogleFonts.montserrat(color: Colors.white),
+                            ),
+                          ),
+                        );
+                      }).toList(),
                     ),
-                  );
-                }).toList(),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
     );
@@ -225,7 +244,7 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
 
   Widget _buildBottomNavigationBar(BuildContext context) {
     return BottomNavigationBar(
-      items: [
+      items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
         BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),
@@ -246,11 +265,7 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
               context,
               MaterialPageRoute(
                 builder: (context) => ModulesMenu(
-                  onModulesUpdated: (updatedModules) {
-                    setState(() {
-                      downloadedModules = updatedModules;
-                    });
-                  },
+                  onModulesUpdated: (updatedModules) {},
                 ),
               ),
             );

@@ -7,7 +7,7 @@ import '../quiz/readcomp_quiz.dart';
 class ModulesMenu extends StatefulWidget {
   final Function(List<String>) onModulesUpdated;
 
-  ModulesMenu({required this.onModulesUpdated});
+  const ModulesMenu({super.key, required this.onModulesUpdated});
 
   @override
   _ModulesMenuState createState() => _ModulesMenuState();
@@ -64,12 +64,43 @@ class _ModulesMenuState extends State<ModulesMenu> {
 
       if (modulesToDelete.isNotEmpty) {
         String userId = FirebaseAuth.instance.currentUser!.uid;
+
+        // Loop through each module to delete
+        for (String module in modulesToDelete) {
+          // Delete the corresponding progress document
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .collection('progress')
+              .doc(module)
+              .delete();
+
+          // Optionally decrement the XP if needed (assuming 500 XP per module)
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .update({
+            'xp': FieldValue.increment(
+                -500), // Adjust this value as per your logic
+          });
+
+          // Remove from completedModules array
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(userId)
+              .update({
+            'completedModules': FieldValue.arrayRemove([module]),
+          });
+        }
+
+        // Finally, remove the modules from downloadedModules
         await FirebaseFirestore.instance
             .collection('users')
             .doc(userId)
             .update({
           'downloadedModules': FieldValue.arrayRemove(modulesToDelete),
         });
+
         setState(() {
           downloadedModules
               .removeWhere((module) => modulesToDelete.contains(module));
@@ -77,7 +108,7 @@ class _ModulesMenuState extends State<ModulesMenu> {
         });
         widget.onModulesUpdated(downloadedModules);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Modules deleted successfully!')),
+          const SnackBar(content: Text('Modules deleted successfully!')),
         );
       }
     } catch (e) {
@@ -90,14 +121,14 @@ class _ModulesMenuState extends State<ModulesMenu> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Error'),
+          title: const Text('Error'),
           content: Text(message),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
               },
-              child: Text('OK'),
+              child: const Text('OK'),
             ),
           ],
         );
@@ -110,23 +141,22 @@ class _ModulesMenuState extends State<ModulesMenu> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Warning'),
-          content: Text(
-            'Deleting modules will remove all your progress. Are you sure?',
-          ),
+          title: const Text('Warning'),
+          content: const Text(
+              'Deleting modules will remove all your progress. Are you sure?'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Cancel action
               },
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
                 _deleteSelectedModules(); // Call deletion function
                 Navigator.of(context).pop(); // Close the dialog
               },
-              child: Text('Delete'),
+              child: const Text('Delete'),
             ),
           ],
         );
@@ -139,14 +169,14 @@ class _ModulesMenuState extends State<ModulesMenu> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('Quiz Confirmation'),
+          title: const Text('Quiz Confirmation'),
           content: Text('You will play a quiz related to $moduleTitle.'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Cancel action
               },
-              child: Text('Cancel'),
+              child: const Text('Cancel'),
             ),
             TextButton(
               onPressed: () {
@@ -159,7 +189,7 @@ class _ModulesMenuState extends State<ModulesMenu> {
                   ),
                 );
               },
-              child: Text('Play'),
+              child: const Text('Play'),
             ),
           ],
         );
@@ -186,67 +216,100 @@ class _ModulesMenuState extends State<ModulesMenu> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Hi, ${FirebaseAuth.instance.currentUser?.displayName ?? "User"}!',
+                  'Modules',
                   style:
                       GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
                 ),
                 IconButton(
-                  icon: Icon(Icons.delete, color: Colors.white),
-                  onPressed: () {
-                    setState(() {
-                      isDeleteMode = !isDeleteMode;
-                    });
-                  },
+                  icon: const Icon(Icons.delete, color: Colors.white),
+                  onPressed: _toggleDeleteMode,
                 ),
               ],
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Expanded(
-              child: ListView.builder(
-                itemCount: downloadedModules.length,
-                itemBuilder: (context, index) {
-                  return Card(
-                    margin: EdgeInsets.symmetric(vertical: 10),
-                    child: ListTile(
-                      title: Text(
-                        downloadedModules[index],
-                        style: GoogleFonts.montserrat(
-                          fontWeight: FontWeight.bold,
-                          fontSize: 18,
-                          color: Colors.blue,
-                        ),
-                      ),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          SizedBox(
-                              height: 10), // Space between title and status
-                          Text('Status: IN PROGRESS',
-                              style:
-                                  GoogleFonts.montserrat(color: Colors.black)),
-                          Text('Difficulty: EASY',
-                              style:
-                                  GoogleFonts.montserrat(color: Colors.black)),
-                          Text('Reward: 500 XP',
-                              style: GoogleFonts.montserrat(
-                                  color: Colors.lightBlue)),
-                        ],
-                      ),
-                      onTap: () {
-                        _showQuizConfirmationDialog(downloadedModules[index]);
+              child: FutureBuilder<DocumentSnapshot>(
+                future: FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(FirebaseAuth.instance.currentUser!.uid)
+                    .collection('progress')
+                    .doc(
+                        'Reading Comprehension') // Adjust this to your module name
+                    .get(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else if (snapshot.hasData && snapshot.data != null) {
+                    var data = snapshot.data!.data() as Map<String, dynamic>;
+                    String status = data['status'] ??
+                        'NOT FINISHED'; // Ensure default is uppercase
+                    return ListView.builder(
+                      itemCount: downloadedModules.length,
+                      itemBuilder: (context, index) {
+                        return Stack(
+                          children: [
+                            Container(
+                              margin: EdgeInsets.only(
+                                  left: isDeleteMode ? 40 : 0,
+                                  top: 10,
+                                  bottom: 10),
+                              child: Card(
+                                child: ListTile(
+                                  title: Text(
+                                    downloadedModules[index],
+                                    style: GoogleFonts.montserrat(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18,
+                                      color: Colors.blue,
+                                    ),
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      const SizedBox(height: 10),
+                                      Text('Status: $status',
+                                          style: GoogleFonts.montserrat(
+                                              color: Colors.black)),
+                                      Text('Difficulty: EASY',
+                                          style: GoogleFonts.montserrat(
+                                              color: Colors.black)),
+                                      Text('Reward: 500 XP',
+                                          style: GoogleFonts.montserrat(
+                                              color: Colors.lightBlue)),
+                                    ],
+                                  ),
+                                  onTap: () {
+                                    if (!isDeleteMode) {
+                                      _showQuizConfirmationDialog(
+                                          downloadedModules[index]);
+                                    }
+                                  },
+                                ),
+                              ),
+                            ),
+                            if (isDeleteMode)
+                              Positioned(
+                                left: 0,
+                                top: 0,
+                                bottom: 0,
+                                child: Checkbox(
+                                  value: selectedModules[index],
+                                  onChanged: (bool? value) {
+                                    setState(() {
+                                      selectedModules[index] = value!;
+                                    });
+                                  },
+                                ),
+                              ),
+                          ],
+                        );
                       },
-                      leading: isDeleteMode
-                          ? Checkbox(
-                              value: selectedModules[index],
-                              onChanged: (bool? value) {
-                                setState(() {
-                                  selectedModules[index] = value!;
-                                });
-                              },
-                            )
-                          : null,
-                    ),
-                  );
+                    );
+                  }
+                  return const Center(child: Text('No modules available.'));
                 },
               ),
             ),
@@ -255,19 +318,22 @@ class _ModulesMenuState extends State<ModulesMenu> {
       ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
       floatingActionButton: isDeleteMode
-          ? FloatingActionButton(
-              onPressed: _confirmDeleteModules,
-              backgroundColor: Colors.red,
-              child: Icon(Icons.delete, color: Colors.white),
+          ? Positioned(
+              bottom: 60, // Position it above the bottom nav bar
+              right: 16,
+              child: FloatingActionButton(
+                onPressed: _confirmDeleteModules,
+                backgroundColor: Colors.red,
+                child: const Icon(Icons.delete, color: Colors.white),
+              ),
             )
           : null,
-      floatingActionButtonLocation: FloatingActionButtonLocation.endDocked,
     );
   }
 
   Widget _buildBottomNavigationBar(BuildContext context) {
     return BottomNavigationBar(
-      items: [
+      items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
         BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),

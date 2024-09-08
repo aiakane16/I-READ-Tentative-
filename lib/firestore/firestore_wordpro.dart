@@ -18,8 +18,6 @@ class FirestoreWordPro {
         .collection('questions')
         .get();
 
-    return snapshot.docs
-        .map((doc) => doc.data() as Map<String, dynamic>)
-        .toList();
+    return snapshot.docs.map((doc) => doc.data()).toList();
   }
 }

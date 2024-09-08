@@ -16,9 +16,12 @@ class FirestoreUser {
   }
 
   Future<Map<String, dynamic>?> getUserData(String userId) async {
-    DocumentSnapshot doc =
-        await _firestore.collection('users').doc(userId).get();
-    return doc.data() as Map<String, dynamic>?;
+    if (FirebaseAuth.instance.currentUser?.uid == userId) {
+      DocumentSnapshot doc =
+          await _firestore.collection('users').doc(userId).get();
+      return doc.data() as Map<String, dynamic>?;
+    }
+    return null;
   }
 
   Future<void> updateUser(String userId, Map<String, dynamic> updates) async {

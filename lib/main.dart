@@ -15,10 +15,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized(); // Ensure Flutter is initialized
   await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform); // Initialize Firebase
-  runApp(MyApp()); // Run your app
+  runApp(const MyApp()); // Run your app
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -28,9 +30,9 @@ class MyApp extends StatelessWidget {
       ),
       initialRoute: '/', // Set the initial route
       routes: {
-        '/': (context) => SplashPage(), // Start with the SplashPage
-        '/login': (context) => LoginPage(),
-        '/register': (context) => RegisterPage(),
+        '/': (context) => const SplashPage(), // Start with the SplashPage
+        '/login': (context) => const LoginPage(),
+        '/register': (context) => const RegisterPage(),
         '/register2': (context) {
           final args = ModalRoute.of(context)!.settings.arguments
               as Map<String, TextEditingController>;
@@ -41,15 +43,15 @@ class MyApp extends StatelessWidget {
             userId: '',
           );
         },
-        '/home': (context) => HomeMenu(username: ''),
+        '/home': (context) => const HomeMenu(username: ''),
         '/modules_menu': (context) => ModulesMenu(
               onModulesUpdated: (updatedModules) {
                 // Handle updates if necessary; this can be a placeholder
               },
             ),
-        '/addfield_menu': (context) => AddFieldMenu(),
-        '/profile_menu': (context) => ProfilesMenu(),
-        '/settings_menu': (context) => SettingsMenu(),
+        '/addfield_menu': (context) => const AddFieldMenu(),
+        '/profile_menu': (context) => const ProfileMenu(),
+        '/settings_menu': (context) => const SettingsMenu(),
         // Other routes can be added here
       },
     );

@@ -1,25 +1,48 @@
+// home_menu.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
+import '../quiz/readcomp_quiz.dart';
 
 class HomeMenu extends StatefulWidget {
-  final String username;
-
-  HomeMenu({required this.username});
+  const HomeMenu({super.key, required String username});
 
   @override
   _HomeMenuState createState() => _HomeMenuState();
 }
 
 class _HomeMenuState extends State<HomeMenu> {
+  String username = '';
+  int xp = 0;
+  List<String> completedModules = [];
   List<Map<String, dynamic>> moduleTitles = [];
 
   @override
   void initState() {
     super.initState();
+    _fetchUserStats();
     _loadDownloadedModules();
+  }
+
+  Future<void> _fetchUserStats() async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+
+    final DocumentSnapshot snapshot =
+        await FirebaseFirestore.instance.collection('users').doc(userId).get();
+
+    if (snapshot.exists) {
+      final data = snapshot.data() as Map<String, dynamic>; // Cast to Map
+      setState(() {
+        username = data['username'] ?? 'User'; // Fetch username
+        xp = data['xp'] ?? 0; // Use data instead of snapshot
+        completedModules = List<String>.from(data['completedModules'] ?? []);
+      });
+    } else {
+      // Handle the case where the document doesn't exist
+      print('User document does not exist');
+    }
   }
 
   Future<void> _loadDownloadedModules() async {
@@ -36,12 +59,46 @@ class _HomeMenuState extends State<HomeMenu> {
     }
   }
 
-  List<Map<String, dynamic>> _getRandomModules() {
+  Future<List<Map<String, dynamic>>> _getModuleStatus(
+      List<String> moduleNames) async {
+    List<Map<String, dynamic>> modulesWithStatus = [];
+
+    for (String moduleName in moduleNames) {
+      var moduleDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .collection('progress')
+          .doc(moduleName)
+          .get();
+
+      if (moduleDoc.exists) {
+        var data = moduleDoc.data() as Map<String, dynamic>;
+        modulesWithStatus.add({
+          'title': moduleName,
+          'status': data['status'] ?? 'NOT FINISHED', // Default status
+          'difficulty': 'EASY', // Adjust as necessary
+          'reward': '500 XP' // Adjust as necessary
+        });
+      }
+    }
+
+    return modulesWithStatus;
+  }
+
+  Future<List<Map<String, dynamic>>> _getRandomModules() async {
     final random = Random();
-    if (moduleTitles.length <= 2) {
-      return moduleTitles;
+
+    // Fetch the status for all modules
+    List<Map<String, dynamic>> modulesWithStatus = await _getModuleStatus(
+      moduleTitles
+          .map((e) => e['title'] as String)
+          .toList(), // Ensure we extract titles as strings
+    );
+
+    if (modulesWithStatus.length <= 2) {
+      return modulesWithStatus;
     } else {
-      return (moduleTitles.toList()..shuffle(random)).sublist(0, 2);
+      return (modulesWithStatus.toList()..shuffle(random)).sublist(0, 2);
     }
   }
 
@@ -50,25 +107,27 @@ class _HomeMenuState extends State<HomeMenu> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(module['title']),
-          content: Text(
-            'Difficulty: ${module['difficulty']}\n\n'
-            'This module includes ${module['questions']} items of questions related to ${module['title']}.\n'
-            'Are you ready?',
-          ),
+          title: const Text('Quiz Confirmation'),
+          content: Text('You will play a quiz related to ${module['title']}.'),
           actions: [
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop(); // Cancel action
               },
-              child: Text('Cancel'),
+              child: Text('Cancel', style: GoogleFonts.montserrat()),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                // Navigate to the module questions screen here
+                Navigator.of(context).pop(); // Close dialog
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) =>
+                        ReadCompQuiz(moduleTitle: module['title']),
+                  ),
+                ); // Navigate to the quiz
               },
-              child: Text('Ready!'),
+              child: Text('Play', style: GoogleFonts.montserrat()),
             ),
           ],
         );
@@ -78,8 +137,6 @@ class _HomeMenuState extends State<HomeMenu> {
 
   @override
   Widget build(BuildContext context) {
-    List<Map<String, dynamic>> selectedModules = _getRandomModules();
-
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -97,14 +154,14 @@ class _HomeMenuState extends State<HomeMenu> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Welcome!',
+                  'Welcome, $username!',
                   style:
                       GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
                 ),
-                Icon(Icons.person, color: Colors.white, size: 30),
+                const Icon(Icons.person, color: Colors.white, size: 30),
               ],
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Container(
               decoration: BoxDecoration(
                 color: Colors.blue[800],
@@ -117,27 +174,47 @@ class _HomeMenuState extends State<HomeMenu> {
                 children: [
                   Text('Ranking: #1/100',
                       style: GoogleFonts.montserrat(color: Colors.white)),
-                  Text('XP Earned: 1000',
+                  Text('XP Earned: $xp',
                       style: GoogleFonts.montserrat(color: Colors.white)),
-                  Text('Level: 12',
+                  Text('Modules Completed: ${completedModules.length}/22',
                       style: GoogleFonts.montserrat(color: Colors.white)),
                 ],
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Text('Recommendations',
                 style:
                     GoogleFonts.montserrat(fontSize: 18, color: Colors.white)),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Expanded(
-              child: ListView(
-                children: selectedModules.map((module) {
-                  return GestureDetector(
-                    onTap: () => _showModuleDialog(module),
-                    child: _buildModuleCard(context, module['title'],
-                        'NOT STARTED', module['difficulty'], '1,000 XP'),
-                  );
-                }).toList(),
+              child: FutureBuilder<List<Map<String, dynamic>>>(
+                future: _getRandomModules(),
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return const Center(child: CircularProgressIndicator());
+                  } else if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  } else if (snapshot.hasData) {
+                    return ListView(
+                      children: snapshot.data!.map((module) {
+                        return MouseRegion(
+                          cursor: SystemMouseCursors.click,
+                          child: GestureDetector(
+                            onTap: () => _showModuleDialog(module),
+                            child: _buildModuleCard(
+                              context,
+                              module['title'],
+                              module['status'],
+                              module['difficulty'],
+                              module['reward'],
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    );
+                  }
+                  return const Center(child: Text('No modules available.'));
+                },
               ),
             ),
           ],
@@ -151,7 +228,7 @@ class _HomeMenuState extends State<HomeMenu> {
       String difficulty, String reward) {
     return Card(
       color: Colors.white,
-      margin: EdgeInsets.symmetric(vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 10),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -164,12 +241,11 @@ class _HomeMenuState extends State<HomeMenu> {
                   color: Colors.blue,
                   fontSize: 18),
             ),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Text('Status: $status',
                 style: GoogleFonts.montserrat(color: Colors.black)),
             Text('Difficulty: $difficulty',
-                style: GoogleFonts.montserrat(
-                    color: Colors.black)), // Change to default color
+                style: GoogleFonts.montserrat(color: Colors.black)),
             Text('Reward: $reward',
                 style: GoogleFonts.montserrat(color: Colors.blue)),
           ],
@@ -180,7 +256,7 @@ class _HomeMenuState extends State<HomeMenu> {
 
   Widget _buildBottomNavigationBar(BuildContext context) {
     return BottomNavigationBar(
-      items: [
+      items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
         BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),

@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'register_page.dart';
 
 class IntroPage extends StatelessWidget {
+  const IntroPage({super.key});
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -24,7 +26,7 @@ class IntroPage extends StatelessWidget {
                 width: 200,
                 height: 200,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Text content
               Padding(
@@ -40,7 +42,7 @@ class IntroPage extends StatelessWidget {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Text(
                       'This app blasts you off on a reading adventure, transforming you into a word-wielding, grammar-grasping champion.',
                       style: GoogleFonts.montserrat(
@@ -50,7 +52,7 @@ class IntroPage extends StatelessWidget {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    SizedBox(height: 20),
+                    const SizedBox(height: 20),
                     Text(
                       'Get ready to conquer comprehension and pronunciation with I-READ!',
                       style: GoogleFonts.montserrat(
@@ -64,7 +66,7 @@ class IntroPage extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: 30),
+              const SizedBox(height: 30),
 
               // Get Started button
               Padding(
@@ -72,13 +74,15 @@ class IntroPage extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.of(context).push(
-                      MaterialPageRoute(builder: (context) => RegisterPage()),
+                      MaterialPageRoute(
+                          builder: (context) => const RegisterPage()),
                     );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue[600],
-                    padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                    minimumSize: Size(double.infinity, 50),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 40, vertical: 20),
+                    minimumSize: const Size(double.infinity, 50),
                   ),
                   child: Text(
                     'Get Started!',
@@ -90,7 +94,7 @@ class IntroPage extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Progress bar
               Padding(
@@ -102,7 +106,7 @@ class IntroPage extends StatelessWidget {
                 ),
               ),
 
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
             ],
           ),
         ),

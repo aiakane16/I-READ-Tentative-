@@ -1,29 +1,49 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../firestore/firestore_user.dart';
 
-class ProfilesMenu extends StatefulWidget {
+class ProfileMenu extends StatefulWidget {
+  const ProfileMenu({super.key});
+
   @override
-  _ProfilesMenuState createState() => _ProfilesMenuState();
+  _ProfileMenuState createState() => _ProfileMenuState();
 }
 
-class _ProfilesMenuState extends State<ProfilesMenu> {
-  final FirestoreUser _firestoreUser = FirestoreUser();
-  User? _currentUser;
-  Map<String, dynamic>? userData;
+class _ProfileMenuState extends State<ProfileMenu> {
+  int xp = 0;
+  int completedModules = 0;
+  String fullName = ''; // Declare fullName
+  String strand = ''; // Declare strand
+  String schoolName = 'Tanauan School of Fisheries'; // Declare school name
 
   @override
   void initState() {
     super.initState();
-    _currentUser = FirebaseAuth.instance.currentUser;
-    _loadUserData();
+    fetchUserData();
   }
 
-  Future<void> _loadUserData() async {
-    if (_currentUser != null) {
-      userData = await _firestoreUser.getUserData(_currentUser!.uid);
-      setState(() {});
+  Future<void> fetchUserData() async {
+    try {
+      String userId = FirebaseAuth.instance.currentUser!.uid;
+      final userSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .get();
+
+      if (userSnapshot.exists) {
+        setState(() {
+          xp = userSnapshot.get('xp') ?? 0;
+          completedModules =
+              (userSnapshot.get('completedModules') as List).length;
+          fullName =
+              userSnapshot.get('fullName') ?? 'Unknown User'; // Fetch full name
+          strand =
+              userSnapshot.get('strand') ?? 'Unknown Strand'; // Fetch strand
+        });
+      }
+    } catch (e) {
+      print('Error fetching user data: $e');
     }
   }
 
@@ -42,18 +62,17 @@ class _ProfilesMenuState extends State<ProfilesMenu> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Profile Circle
-            Center(
+            const Center(
               child: CircleAvatar(
                 radius: 60,
                 backgroundImage:
                     AssetImage('assets/i_read_pic.png'), // Add your image
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             Center(
               child: Text(
-                'Juan Dela Cruz',
+                fullName,
                 style: GoogleFonts.montserrat(
                     fontSize: 24,
                     color: Colors.white,
@@ -62,41 +81,55 @@ class _ProfilesMenuState extends State<ProfilesMenu> {
             ),
             Center(
               child: Text(
-                'Food and Bar Services (FBS)\nTanauan School of Fisheries',
+                strand,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.montserrat(color: Colors.white),
               ),
             ),
-            SizedBox(height: 20),
-
-            // Statistics Section
+            Center(
+              child: Text(
+                'Tanauan School of Fisheries', // Add school name here
+                textAlign: TextAlign.center,
+                style: GoogleFonts.montserrat(color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 20),
             Text('Statistics',
                 style: GoogleFonts.montserrat(
                     color: Colors.white, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Expanded(
-              child: GridView.count(
-                crossAxisCount: 2,
+              child: Column(
                 children: [
-                  _buildStatCard('Ranking', '#1/100'),
-                  _buildStatCard('XP Earned', '20,312'),
-                  _buildStatCard('Modules Completed', '10/22'),
-                  _buildStatCard('Level', '12'),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _buildStatCard('Ranking', '#1/100'),
+                      ),
+                      Expanded(
+                        child: _buildStatCard('XP Earned', xp.toString()),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Center(
+                    child: _buildStatCard(
+                        'Modules Completed', '$completedModules/22'),
+                  ),
                 ],
               ),
             ),
           ],
         ),
       ),
-      bottomNavigationBar:
-          _buildBottomNavigationBar(context), // Ensure the nav bar is included
+      bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
 
   Widget _buildStatCard(String title, String value) {
     return Card(
       color: Colors.blue[800],
-      margin: EdgeInsets.all(8.0),
+      margin: const EdgeInsets.all(8.0),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -105,7 +138,7 @@ class _ProfilesMenuState extends State<ProfilesMenu> {
             Text(title,
                 style: GoogleFonts.montserrat(
                     color: Colors.white, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
+            const SizedBox(height: 10),
             Text(value,
                 style:
                     GoogleFonts.montserrat(color: Colors.white, fontSize: 20)),
@@ -117,7 +150,7 @@ class _ProfilesMenuState extends State<ProfilesMenu> {
 
   Widget _buildBottomNavigationBar(BuildContext context) {
     return BottomNavigationBar(
-      items: [
+      items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
         BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),

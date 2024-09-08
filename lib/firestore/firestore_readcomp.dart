@@ -1,27 +1,28 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class FirestoreReadComp {
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final String userId;
 
-  Future<List<Map<String, dynamic>>> getModules() async {
-    var snapshot = await _firestore
-        .collection('fields')
-        .doc('Reading Comprehension')
+  FirestoreReadComp(this.userId);
+
+  // Fetch user-specific module progress
+  Future<DocumentSnapshot> getUserProgress(String moduleId) async {
+    return await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('progress')
+        .doc(moduleId)
         .get();
-    return List<Map<String, dynamic>>.from(snapshot.data()?['modules'] ?? []);
   }
 
-  Future<List<Map<String, dynamic>>> getQuestions(String moduleId) async {
-    var snapshot = await _firestore
-        .collection('fields')
-        .doc('Reading Comprehension')
-        .collection('modules')
+  // Update user-specific module progress
+  Future<void> updateUserProgress(
+      String moduleId, Map<String, dynamic> data) async {
+    await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('progress')
         .doc(moduleId)
-        .collection('questions')
-        .get();
-
-    return snapshot.docs
-        .map((doc) => doc.data() as Map<String, dynamic>)
-        .toList();
+        .set(data, SetOptions(merge: true));
   }
 }

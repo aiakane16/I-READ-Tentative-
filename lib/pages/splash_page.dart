@@ -3,6 +3,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'intro_page.dart';
 
 class SplashPage extends StatefulWidget {
+  const SplashPage({super.key});
+
   @override
   _SplashPageState createState() => _SplashPageState();
 }
@@ -19,7 +21,7 @@ class _SplashPageState extends State<SplashPage>
   void initState() {
     super.initState();
     _controller =
-        AnimationController(vsync: this, duration: Duration(seconds: 2));
+        AnimationController(vsync: this, duration: const Duration(seconds: 2));
 
     _logoFadeInAnimation =
         Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(
@@ -30,11 +32,12 @@ class _SplashPageState extends State<SplashPage>
     _textFadeInAnimation =
         Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(
       parent: _controller,
-      curve: Interval(0.4, 1.0, curve: Curves.easeIn),
+      curve: const Interval(0.4, 1.0, curve: Curves.easeIn),
     ));
 
-    _slideUpAnimation = Tween<Offset>(begin: Offset(0, 0), end: Offset(0, -0.5))
-        .animate(CurvedAnimation(
+    _slideUpAnimation =
+        Tween<Offset>(begin: const Offset(0, 0), end: const Offset(0, -0.5))
+            .animate(CurvedAnimation(
       parent: _controller,
       curve: Curves.easeInOut,
     ));
@@ -42,7 +45,7 @@ class _SplashPageState extends State<SplashPage>
     _buttonFadeInAnimation =
         Tween<double>(begin: 0, end: 1).animate(CurvedAnimation(
       parent: _controller,
-      curve: Interval(0.6, 1.0, curve: Curves.easeIn),
+      curve: const Interval(0.6, 1.0, curve: Curves.easeIn),
     ));
 
     _controller.forward(); // Start animations without auto-navigation
@@ -70,7 +73,7 @@ class _SplashPageState extends State<SplashPage>
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            SizedBox(height: 200), // Space above the logo
+            const SizedBox(height: 200), // Space above the logo
             SlideTransition(
               position: _slideUpAnimation,
               child: Column(
@@ -84,10 +87,10 @@ class _SplashPageState extends State<SplashPage>
                       height: 200,
                     ),
                   ),
-                  SizedBox(height: 10),
+                  const SizedBox(height: 10),
                   FadeTransition(
                     opacity: _textFadeInAnimation,
-                    child: Text(
+                    child: const Text(
                       'where learning gets better.',
                       style: TextStyle(color: Colors.white, fontSize: 16),
                     ),
@@ -112,9 +115,9 @@ class _SplashPageState extends State<SplashPage>
                             style: ElevatedButton.styleFrom(
                               backgroundColor: Colors
                                   .blue[600], // Blue background for Log In
-                              padding: EdgeInsets.symmetric(
+                              padding: const EdgeInsets.symmetric(
                                   horizontal: 40, vertical: 20),
-                              minimumSize: Size(double.infinity, 50),
+                              minimumSize: const Size(double.infinity, 50),
                             ),
                             child: Text(
                               'Log In',
@@ -127,22 +130,22 @@ class _SplashPageState extends State<SplashPage>
                             ),
                           ),
                         ),
-                        SizedBox(height: 10),
+                        const SizedBox(height: 10),
                         SizedBox(
                           width: 250, // Width for Sign Up button
                           child: TextButton(
                             onPressed: () {
                               Navigator.of(context).pushReplacement(
                                 MaterialPageRoute(
-                                    builder: (context) => IntroPage()),
+                                    builder: (context) => const IntroPage()),
                               );
                             },
                             style: TextButton.styleFrom(
                               backgroundColor:
                                   Colors.transparent, // Fully transparent
-                              padding: EdgeInsets.symmetric(
+                              padding: const EdgeInsets.symmetric(
                                   horizontal: 40, vertical: 20),
-                              minimumSize: Size(double.infinity, 50),
+                              minimumSize: const Size(double.infinity, 50),
                               side: BorderSide(
                                   color: Colors.blue[600]!), // Blue border
                             ),
@@ -159,7 +162,7 @@ class _SplashPageState extends State<SplashPage>
                       ],
                     ),
                   ),
-                  SizedBox(height: 40), // Padding below the buttons
+                  const SizedBox(height: 40), // Padding below the buttons
                 ],
               ),
             ),

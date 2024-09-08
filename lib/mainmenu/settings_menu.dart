@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../firestore/firestore_user.dart';
 
 class SettingsMenu extends StatefulWidget {
+  const SettingsMenu({super.key});
+
   @override
   _SettingsMenuState createState() => _SettingsMenuState();
 }
@@ -46,7 +48,7 @@ class _SettingsMenuState extends State<SettingsMenu> {
                     color: Colors.white),
               ),
             ),
-            SizedBox(height: 20),
+            const SizedBox(height: 20),
             _buildSettingsButton('Edit Profile', context),
             _buildSettingsButton('Log Out', context, isLogout: true),
           ],
@@ -61,7 +63,7 @@ class _SettingsMenuState extends State<SettingsMenu> {
       {bool isLogout = false}) {
     return Card(
       color: Colors.blue[800],
-      margin: EdgeInsets.symmetric(vertical: 10),
+      margin: const EdgeInsets.symmetric(vertical: 10),
       child: ListTile(
         title: Text(
           title,
@@ -80,7 +82,7 @@ class _SettingsMenuState extends State<SettingsMenu> {
 
   Widget _buildBottomNavigationBar(BuildContext context) {
     return BottomNavigationBar(
-      items: [
+      items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
         BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),

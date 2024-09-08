@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 import '../firestore/firestore_user.dart';
 
 class LoginPage extends StatefulWidget {
+  const LoginPage({super.key});
+
   @override
   _LoginPageState createState() => _LoginPageState();
 }
@@ -78,7 +80,8 @@ class _LoginPageState extends State<LoginPage> {
         Navigator.of(context).pushReplacementNamed('/home');
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Please input a registered user account')),
+          const SnackBar(
+              content: Text('Please input a registered user account')),
         );
       }
     }
@@ -102,31 +105,31 @@ class _LoginPageState extends State<LoginPage> {
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Image.asset('assets/i_read_pic.png', width: 120, height: 120),
-              SizedBox(height: 20),
-              Text('where learning gets better.',
+              const SizedBox(height: 20),
+              const Text('where learning gets better.',
                   style: TextStyle(color: Colors.white, fontSize: 16)),
-              SizedBox(height: 10),
-              Divider(color: Colors.white, thickness: 1),
-              SizedBox(height: 20),
+              const SizedBox(height: 10),
+              const Divider(color: Colors.white, thickness: 1),
+              const SizedBox(height: 20),
               Text('Login',
                   style: GoogleFonts.montserrat(
                       color: Colors.white,
                       fontSize: 32,
                       fontWeight: FontWeight.bold)),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               // Email Field
               TextFormField(
                 controller: _emailController,
                 maxLength: 30,
                 decoration: InputDecoration(
                   labelText: 'E-Mail',
-                  labelStyle: TextStyle(color: Colors.white),
+                  labelStyle: const TextStyle(color: Colors.white),
                   filled: true,
                   fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   hintText: 'Enter E-mail here...',
-                  hintStyle: TextStyle(color: Colors.white54),
-                  prefixIcon: Icon(Icons.email, color: Colors.white),
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  prefixIcon: const Icon(Icons.email, color: Colors.white),
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
                 onChanged: _validateEmail,
@@ -138,23 +141,23 @@ class _LoginPageState extends State<LoginPage> {
               if (_emailError != null)
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
-                  child:
-                      Text(_emailError!, style: TextStyle(color: Colors.red)),
+                  child: Text(_emailError!,
+                      style: const TextStyle(color: Colors.red)),
                 ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               TextFormField(
                 controller: _passwordController,
                 obscureText: !_isPasswordVisible,
                 maxLength: 10,
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  labelStyle: TextStyle(color: Colors.white),
+                  labelStyle: const TextStyle(color: Colors.white),
                   filled: true,
                   fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   hintText: 'Enter password here...',
-                  hintStyle: TextStyle(color: Colors.white54),
-                  prefixIcon: Icon(Icons.lock, color: Colors.white),
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  prefixIcon: const Icon(Icons.lock, color: Colors.white),
                   suffixIcon: IconButton(
                     icon: Icon(
                         _isPasswordVisible
@@ -179,9 +182,9 @@ class _LoginPageState extends State<LoginPage> {
                 Padding(
                   padding: const EdgeInsets.only(top: 8.0),
                   child: Text(_passwordError!,
-                      style: TextStyle(color: Colors.red)),
+                      style: const TextStyle(color: Colors.red)),
                 ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               Row(
                 children: [
                   Checkbox(
@@ -197,26 +200,27 @@ class _LoginPageState extends State<LoginPage> {
                       style: GoogleFonts.montserrat(color: Colors.white)),
                 ],
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _handleLogin,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[600],
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                  minimumSize: Size(double.infinity, 50),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  minimumSize: const Size(double.infinity, 50),
                 ),
                 child: Text('Login',
                     style: GoogleFonts.montserrat(color: Colors.white)),
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
               RichText(
                 text: TextSpan(
                   style: GoogleFonts.montserrat(color: Colors.white),
                   children: [
-                    TextSpan(text: "Don't have an Account? "),
+                    const TextSpan(text: "Don't have an Account? "),
                     TextSpan(
                       text: 'Sign Up here.',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      style: const TextStyle(fontWeight: FontWeight.bold),
                       recognizer: TapGestureRecognizer()
                         ..onTap = () {
                           Navigator.of(context)

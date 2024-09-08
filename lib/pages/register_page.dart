@@ -1,11 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:i_read_app/functions/form_data.dart';
 import 'login_page.dart';
 import 'register2_page.dart';
-import '../firestore/firestore_user.dart'; // Import FirestoreUser
+import '../firestore/firestore_user.dart';
 
 class RegisterPage extends StatefulWidget {
+  const RegisterPage({super.key});
+
   @override
   _RegisterPageState createState() => _RegisterPageState();
 }
@@ -76,33 +80,42 @@ class _RegisterPageState extends State<RegisterPage> {
     });
   }
 
+  Future<void> checkEmailExists(String email) async {
+    final QuerySnapshot result = await FirebaseFirestore.instance
+        .collection('users')
+        .where('email', isEqualTo: email)
+        .get();
+
+    if (result.docs.isNotEmpty) {
+      throw Exception('Email already registered');
+    }
+  }
+
   void _handleNext() async {
     if (_formKey.currentState!.validate()) {
       try {
-        // Check if email already exists in Firestore
-        var emailQuery =
-            await _firestoreUser.checkEmailExists(_emailController.text);
-        if (emailQuery.docs.isNotEmpty) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Please input a different email')),
-          );
-          return;
-        }
+        await checkEmailExists(_emailController.text);
 
-        // Proceed to the PersonalInfoPage if email is valid
+        // Temporarily store the email, username, and password in FormData
+        FormData().email = _emailController.text;
+        FormData().username = _usernameController.text;
+        FormData().password = _passwordController.text;
+
+        // Navigate to PersonalInfoPage without creating the user account
         Navigator.of(context).push(
           MaterialPageRoute(
             builder: (context) => PersonalInfoPage(
               emailController: _emailController,
               usernameController: _usernameController,
               passwordController: _passwordController,
-              userId: '', // Placeholder for userId
+              userId:
+                  '', // Still empty, as the user is not yet created in Firebase Auth
             ),
           ),
         );
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error checking email: ${e.toString()}')),
+          SnackBar(content: Text(e.toString())),
         );
       }
     }
@@ -126,9 +139,9 @@ class _RegisterPageState extends State<RegisterPage> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.start,
             children: [
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Image.asset('assets/i_read_pic.png', width: 75, height: 75),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Text(
                 "Let's Get You Started!",
                 style: GoogleFonts.montserrat(
@@ -138,7 +151,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 10),
+              const SizedBox(height: 10),
               Text(
                 'Create an account to access I-READ',
                 style: GoogleFonts.montserrat(
@@ -147,7 +160,7 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
                 textAlign: TextAlign.center,
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Email Field
               TextFormField(
@@ -155,13 +168,13 @@ class _RegisterPageState extends State<RegisterPage> {
                 maxLength: 30,
                 decoration: InputDecoration(
                   labelText: 'E-Mail',
-                  labelStyle: TextStyle(color: Colors.white),
+                  labelStyle: const TextStyle(color: Colors.white),
                   filled: true,
                   fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   hintText: 'Enter E-mail here...',
-                  hintStyle: TextStyle(color: Colors.white54),
-                  prefixIcon: Icon(Icons.email, color: Colors.white),
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  prefixIcon: const Icon(Icons.email, color: Colors.white),
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
                 validator: _validateEmail,
@@ -170,7 +183,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   return null;
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Username Field
               TextFormField(
@@ -178,13 +191,13 @@ class _RegisterPageState extends State<RegisterPage> {
                 maxLength: 15,
                 decoration: InputDecoration(
                   labelText: 'Username',
-                  labelStyle: TextStyle(color: Colors.white),
+                  labelStyle: const TextStyle(color: Colors.white),
                   filled: true,
                   fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   hintText: 'Enter username here...',
-                  hintStyle: TextStyle(color: Colors.white54),
-                  prefixIcon: Icon(Icons.person, color: Colors.white),
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  prefixIcon: const Icon(Icons.person, color: Colors.white),
                 ),
                 style: GoogleFonts.montserrat(color: Colors.white),
                 validator: _validateUsername,
@@ -193,7 +206,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   return null;
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Password Field
               TextFormField(
@@ -202,13 +215,13 @@ class _RegisterPageState extends State<RegisterPage> {
                 maxLength: 10,
                 decoration: InputDecoration(
                   labelText: 'Password',
-                  labelStyle: TextStyle(color: Colors.white),
+                  labelStyle: const TextStyle(color: Colors.white),
                   filled: true,
                   fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   hintText: 'Enter password here...',
-                  hintStyle: TextStyle(color: Colors.white54),
-                  prefixIcon: Icon(Icons.lock, color: Colors.white),
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  prefixIcon: const Icon(Icons.lock, color: Colors.white),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _isPasswordVisible
@@ -226,7 +239,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   return null;
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Confirm Password Field
               TextFormField(
@@ -235,13 +248,14 @@ class _RegisterPageState extends State<RegisterPage> {
                 maxLength: 10,
                 decoration: InputDecoration(
                   labelText: 'Confirm Password',
-                  labelStyle: TextStyle(color: Colors.white),
+                  labelStyle: const TextStyle(color: Colors.white),
                   filled: true,
                   fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: OutlineInputBorder(),
+                  border: const OutlineInputBorder(),
                   hintText: 'Confirm password here...',
-                  hintStyle: TextStyle(color: Colors.white54),
-                  prefixIcon: Icon(Icons.lock_outline, color: Colors.white),
+                  hintStyle: const TextStyle(color: Colors.white54),
+                  prefixIcon:
+                      const Icon(Icons.lock_outline, color: Colors.white),
                   suffixIcon: IconButton(
                     icon: Icon(
                       _isConfirmPasswordVisible
@@ -259,15 +273,16 @@ class _RegisterPageState extends State<RegisterPage> {
                   return null;
                 },
               ),
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Next Button
               ElevatedButton(
                 onPressed: _handleNext,
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.blue[600],
-                  padding: EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                  minimumSize: Size(double.infinity, 50),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  minimumSize: const Size(double.infinity, 50),
                 ),
                 child: Text(
                   'Next',
@@ -278,22 +293,27 @@ class _RegisterPageState extends State<RegisterPage> {
                 ),
               ),
 
-              SizedBox(height: 20),
+              const SizedBox(height: 20),
 
               // Link to Login
               RichText(
                 text: TextSpan(
                   style: GoogleFonts.montserrat(color: Colors.white),
-                  children: [
-                    TextSpan(text: 'Already have an account? '),
+                  children: <TextSpan>[
+                    const TextSpan(text: "Already have an account? "),
                     TextSpan(
-                      text: 'Login here.',
-                      style: TextStyle(fontWeight: FontWeight.bold),
+                      text: "Login",
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
                       recognizer: TapGestureRecognizer()
                         ..onTap = () {
-                          Navigator.of(context).push(
+                          Navigator.pushReplacement(
+                            context,
                             MaterialPageRoute(
-                                builder: (context) => LoginPage()),
+                              builder: (context) => const LoginPage(),
+                            ),
                           );
                         },
                     ),
