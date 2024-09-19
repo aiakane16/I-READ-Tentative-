@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:i_read_app/functions/form_data.dart';
 import 'login_page.dart';
 import 'register2_page.dart';
-import '../firestore/firestore_user.dart';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -15,7 +14,6 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
-  final FirestoreUser _firestoreUser = FirestoreUser();
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
@@ -108,8 +106,6 @@ class _RegisterPageState extends State<RegisterPage> {
               emailController: _emailController,
               usernameController: _usernameController,
               passwordController: _passwordController,
-              userId:
-                  '', // Still empty, as the user is not yet created in Firebase Auth
             ),
           ),
         );

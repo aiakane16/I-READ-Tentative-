@@ -18,7 +18,6 @@ class PersonalInfoPage extends StatefulWidget {
     required this.emailController,
     required this.usernameController,
     required this.passwordController,
-    required String userId,
   });
 
   @override
@@ -90,7 +89,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   Future<void> _showConfirmationDialog() async {
     return showDialog<void>(
       context: context,
-      barrierDismissible: false, // User must tap a button to dismiss
+      barrierDismissible: false,
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('Confirm Your Information'),
@@ -99,8 +98,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
               children: <Widget>[
                 Text('Email: ${widget.emailController.text}'),
                 Text('Username: ${widget.usernameController.text}'),
-                Text(
-                    'Password: ${widget.passwordController.text}'), // Consider hiding password for security
+                Text('Password: ${widget.passwordController.text}'),
                 Text('Full Name: ${_fullNameController.text}'),
                 Text('Strand: ${_strandController.text}'),
                 Text('Birthday: ${_birthdayController.text}'),
@@ -118,8 +116,8 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             TextButton(
               child: const Text('Confirm'),
               onPressed: () {
-                Navigator.of(context).pop(); // Close the dialog
-                _confirmSignUp(); // Call the registration method
+                Navigator.of(context).pop();
+                _confirmSignUp();
               },
             ),
           ],
@@ -143,17 +141,15 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     }
 
     try {
-      // Create user with Firebase Authentication
       UserCredential userCredential =
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: widget.emailController.text,
         password: widget.passwordController.text,
       );
 
-      // Use the UID as the document ID in Firestore
       String uid = userCredential.user!.uid;
 
-      // Create user document in Firestore using UID
+      // Initialize user data in Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
         'fullName': _fullNameController.text,
         'strand': _strandController.text,
@@ -161,34 +157,28 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         'address': _addressController.text,
         'email': widget.emailController.text,
         'username': widget.usernameController.text,
-        'downloadedModules': [],
-        'completedModules': [],
+        'downloadedModules': [], // Start with empty
+        'completedModules': [], // Start with empty
         'xp': 0,
       });
 
-      // Use the module title for the progress document ID
-      String moduleTitle =
-          'Reading Comprehension'; // Replace with your logic if needed
-
-      // Create initial progress document
-      await FirebaseFirestore.instance
+      // Fetch default user data
+      DocumentSnapshot defaultUserDoc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(uid)
-          .collection('progress')
-          .doc(moduleTitle) // Use the module name as the document ID
-          .set({
-        'mistakes': 0,
-        'status': 'Not Finished', // Set initial status
-        'time': 0,
-        'xpEarned': 0,
-      });
+          .doc('User ID') // Replace with your actual default user ID
+          .get();
 
-      // Update completedModules
-      await FirebaseFirestore.instance.collection('users').doc(uid).update({
-        'completedModules': FieldValue.arrayUnion([moduleTitle]),
-      });
+      Map<String, dynamic>? defaultData =
+          defaultUserDoc.data() as Map<String, dynamic>?;
 
-      // Navigate to the home screen
+      if (defaultData != null) {
+        // Only copy the default module progress
+        await _initializeModuleProgress(uid, 'Reading Comprehension');
+        await _initializeModuleProgress(uid, 'Word Pronunciation');
+        await _initializeModuleProgress(uid, 'Sentence Composition');
+        await _initializeModuleProgress(uid, 'Vocabulary Skills');
+      }
+
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) =>
@@ -200,6 +190,24 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
       );
+    }
+  }
+
+  Future<void> _initializeModuleProgress(String uid, String moduleName) async {
+    var moduleData = await FirebaseFirestore.instance
+        .collection('users')
+        .doc('User ID') // Default user
+        .collection('progress')
+        .doc(moduleName)
+        .get();
+
+    if (moduleData.exists) {
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(uid)
+          .collection('progress')
+          .doc(moduleName)
+          .set(moduleData.data()!);
     }
   }
 

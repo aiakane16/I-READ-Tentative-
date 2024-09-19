@@ -7,7 +7,7 @@ import '../pages/shortstory_page.dart';
 class ReadCompQuiz extends StatefulWidget {
   final String moduleTitle;
 
-  const ReadCompQuiz({Key? key, required this.moduleTitle}) : super(key: key);
+  const ReadCompQuiz({super.key, required this.moduleTitle});
 
   @override
   _ReadCompQuizState createState() => _ReadCompQuizState();
@@ -196,9 +196,9 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
           backgroundColor: Colors.blue[900],
         ),
         body: isLoading
-            ? Center(child: CircularProgressIndicator())
+            ? const Center(child: CircularProgressIndicator())
             : questions.isEmpty
-                ? Center(
+                ? const Center(
                     child: Text('No questions available.',
                         style: TextStyle(fontSize: 18)))
                 : _buildQuizContent(),
@@ -211,7 +211,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
     final options = questions[currentQuestionIndex]['options'];
 
     return Container(
-      decoration: BoxDecoration(
+      decoration: const BoxDecoration(
         gradient: LinearGradient(
           colors: [Color(0xFF003366), Color(0xFF0052CC)],
           begin: Alignment.topCenter,
@@ -244,16 +244,16 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
                               isAnswerSelected = false; // Allow resubmission
                             });
                           },
-                    child: Text(
-                      option,
-                      style: GoogleFonts.montserrat(color: Colors.white),
-                    ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
                           selectedAnswerIndex == options.indexOf(option)
                               ? Colors.blue[700]
                               : Colors.blueAccent,
                       minimumSize: const Size(double.infinity, 50),
+                    ),
+                    child: Text(
+                      option,
+                      style: GoogleFonts.montserrat(color: Colors.white),
                     ),
                   ),
                 );
@@ -277,13 +277,13 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
                   _submitAnswer(); // Submit answer if not selected
                 }
               },
-              child: Text(isAnswerSelected
-                  ? (isCorrect ? 'Next' : 'Submit')
-                  : 'Submit'),
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 minimumSize: const Size(double.infinity, 50),
               ),
+              child: Text(isAnswerSelected
+                  ? (isCorrect ? 'Next' : 'Submit')
+                  : 'Submit'),
             ),
             const SizedBox(height: 20),
             if (isAnswerSelected)
@@ -292,13 +292,17 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
                   Text(
                     feedbackMessage,
                     style: TextStyle(
-                      color: isCorrect ? Color(0xFF00FF00) : Color(0xFFFF6666),
+                      color: isCorrect
+                          ? const Color(0xFF00FF00)
+                          : const Color(0xFFFF6666),
                       fontSize: 24,
                     ),
                   ),
                   Icon(
                     isCorrect ? Icons.check_circle : Icons.cancel,
-                    color: isCorrect ? Color(0xFF00FF00) : Color(0xFFFF6666),
+                    color: isCorrect
+                        ? const Color(0xFF00FF00)
+                        : const Color(0xFFFF6666),
                     size: 60,
                   ),
                 ],

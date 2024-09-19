@@ -26,13 +26,6 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
   @override
   void initState() {
     super.initState();
-    // Initialization that doesn't rely on inherited widgets
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Load data that depends on the context
     _loadDownloadedModules();
     _loadAvailableModules();
   }
@@ -59,18 +52,19 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
   Future<void> _loadAvailableModules() async {
     try {
       for (String field in fields) {
-        var modulesSnapshot = await FirebaseFirestore.instance
+        var fieldDoc = await FirebaseFirestore.instance
             .collection('fields')
             .doc(field)
-            .get();
+            .get(); // Get the field document
 
-        if (modulesSnapshot.exists) {
-          var modules =
-              modulesSnapshot.data()?['modules'] as List<dynamic>? ?? [];
+        if (fieldDoc.exists) {
+          var modules = fieldDoc.data()?['modules'] as List<dynamic>? ?? [];
           setState(() {
             availableModules[field] =
                 modules.map((module) => module['title'] as String).toList();
           });
+        } else {
+          availableModules[field] = []; // Ensure empty list if no modules found
         }
       }
     } catch (e) {
@@ -82,61 +76,56 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
     }
   }
 
-  void downloadModules(BuildContext context, String field) async {
+  Future<void> downloadModules(BuildContext context, String field) async {
     try {
-      var modulesSnapshot = await FirebaseFirestore.instance
+      var fieldDoc = await FirebaseFirestore.instance
           .collection('fields')
           .doc(field)
-          .get();
+          .get(); // Get the field document
 
-      if (modulesSnapshot.exists) {
-        var modules =
-            modulesSnapshot.data()?['modules'] as List<dynamic>? ?? [];
-        if (modules.isNotEmpty) {
-          List<String> moduleTitles =
-              modules.map((module) => module['title'] as String).toList();
+      if (fieldDoc.exists) {
+        var modules = fieldDoc.data()?['modules'] as List<dynamic>? ?? [];
+        List<String> moduleTitles = modules.map((module) {
+          return module['title'] as String;
+        }).toList();
 
-          bool allDownloaded = moduleTitles
-              .every((module) => downloadedModules.contains(module));
+        bool allDownloaded =
+            moduleTitles.every((module) => downloadedModules.contains(module));
 
-          if (allDownloaded) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                  content: Text("The field's modules are already downloaded!")),
-            );
-            return;
-          }
-
-          showDialog(
-            context: context,
-            builder: (context) {
-              return AlertDialog(
-                title: const Text('Download Modules'),
-                content: Text(
-                    'The modules you will download are:\n\n${moduleTitles.join('\n')}'),
-                actions: [
-                  TextButton(
-                    onPressed: () {
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Cancel'),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      await _addDownloadedModules(moduleTitles);
-                      Navigator.of(context).pop();
-                    },
-                    child: const Text('Download'),
-                  ),
-                ],
-              );
-            },
-          );
-        } else {
-          _showErrorDialog('No modules found for this field.');
+        if (allDownloaded) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+              content: Text("The field's modules are already downloaded!")));
+          return;
         }
+
+        // Show dialog for downloading modules
+        showDialog(
+          context: context,
+          builder: (context) {
+            return AlertDialog(
+              title: const Text('Download Modules'),
+              content: Text(
+                  'The modules you will download are:\n\n${moduleTitles.join('\n')}'),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                  child: const Text('Cancel'),
+                ),
+                TextButton(
+                  onPressed: () async {
+                    await _addDownloadedModules(moduleTitles);
+                    Navigator.of(context).pop(); // Close the dialog
+                  },
+                  child: const Text('Download'),
+                ),
+              ],
+            );
+          },
+        );
       } else {
-        _showErrorDialog('Field not found.');
+        _showErrorDialog('No modules found for this field.');
       }
     } catch (e) {
       _showErrorDialog('Error fetching modules: $e');
@@ -146,15 +135,33 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
   Future<void> _addDownloadedModules(List<String> moduleTitles) async {
     try {
       String userId = FirebaseAuth.instance.currentUser!.uid;
+
+      // Update downloaded modules
       await FirebaseFirestore.instance.collection('users').doc(userId).update({
         'downloadedModules': FieldValue.arrayUnion(moduleTitles),
       });
+
+      // Initialize progress for each module
+      for (String module in moduleTitles) {
+        Map<String, dynamic> progressData = {
+          'status': 'NOT FINISHED',
+          'time': 0,
+          'xpEarned': 0,
+        };
+
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('progress')
+            .doc(module)
+            .set(progressData);
+      }
+
       setState(() {
         downloadedModules.addAll(moduleTitles);
       });
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Modules downloaded successfully!')),
-      );
+          const SnackBar(content: Text('Modules downloaded successfully!')));
     } catch (e) {
       _showErrorDialog('Error downloading modules: $e');
     }
@@ -209,7 +216,7 @@ class _AddFieldMenuState extends State<AddFieldMenu> {
                         bool isClickable = availableModules[field]?.any(
                                 (module) =>
                                     !downloadedModules.contains(module)) ??
-                            true;
+                            false;
                         return Container(
                           margin: const EdgeInsets.symmetric(vertical: 10),
                           child: ElevatedButton(

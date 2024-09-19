@@ -1,4 +1,3 @@
-// home_menu.dart
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -7,7 +6,9 @@ import 'dart:math';
 import '../quiz/readcomp_quiz.dart';
 
 class HomeMenu extends StatefulWidget {
-  const HomeMenu({super.key, required String username});
+  const HomeMenu({super.key, required this.username});
+
+  final String username;
 
   @override
   _HomeMenuState createState() => _HomeMenuState();
@@ -33,14 +34,13 @@ class _HomeMenuState extends State<HomeMenu> {
         await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
     if (snapshot.exists) {
-      final data = snapshot.data() as Map<String, dynamic>; // Cast to Map
+      final data = snapshot.data() as Map<String, dynamic>;
       setState(() {
         username = data['username'] ?? 'User'; // Fetch username
         xp = data['xp'] ?? 0; // Use data instead of snapshot
         completedModules = List<String>.from(data['completedModules'] ?? []);
       });
     } else {
-      // Handle the case where the document doesn't exist
       print('User document does not exist');
     }
   }
@@ -51,10 +51,16 @@ class _HomeMenuState extends State<HomeMenu> {
         await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
     if (userDoc.exists) {
-      var modules = userDoc.data()?['downloadedModules'] as List<dynamic> ?? [];
+      var modules =
+          userDoc.data()?['downloadedModules'] as List<dynamic>? ?? [];
       setState(() {
-        moduleTitles = List<Map<String, dynamic>>.from(modules.map((module) =>
-            {'title': module, 'difficulty': 'EASY', 'questions': 11}));
+        moduleTitles = List<Map<String, dynamic>>.from(
+            modules.map((module) => {'title': module}));
+      });
+    } else {
+      print('User document does not exist');
+      setState(() {
+        moduleTitles = []; // Ensure it's empty
       });
     }
   }
@@ -79,6 +85,13 @@ class _HomeMenuState extends State<HomeMenu> {
           'difficulty': 'EASY', // Adjust as necessary
           'reward': '500 XP' // Adjust as necessary
         });
+      } else {
+        modulesWithStatus.add({
+          'title': moduleName,
+          'status': 'NOT FINISHED',
+          'difficulty': 'EASY',
+          'reward': '500 XP'
+        });
       }
     }
 
@@ -87,12 +100,8 @@ class _HomeMenuState extends State<HomeMenu> {
 
   Future<List<Map<String, dynamic>>> _getRandomModules() async {
     final random = Random();
-
-    // Fetch the status for all modules
     List<Map<String, dynamic>> modulesWithStatus = await _getModuleStatus(
-      moduleTitles
-          .map((e) => e['title'] as String)
-          .toList(), // Ensure we extract titles as strings
+      moduleTitles.map((e) => e['title'] as String).toList(),
     );
 
     if (modulesWithStatus.length <= 2) {
