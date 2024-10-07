@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../firestore/firestore_user.dart';
+import '../functions/editprofilepage.dart'; // Ensure the correct import path
 
 class SettingsMenu extends StatefulWidget {
   const SettingsMenu({super.key});
@@ -72,9 +73,16 @@ class _SettingsMenuState extends State<SettingsMenu> {
         ),
         onTap: () {
           if (isLogout) {
-            Navigator.of(context).pushReplacementNamed('/');
+            _logout(); // Call the logout function
+          } else {
+            // Navigate to Edit Profile page
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const EditProfilePage(),
+              ),
+            );
           }
-          // Add other navigation logic here if needed
         },
       ),
     );
@@ -85,7 +93,8 @@ class _SettingsMenuState extends State<SettingsMenu> {
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
-        BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.menu_book), label: 'Dictionary'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
       ],
@@ -102,7 +111,7 @@ class _SettingsMenuState extends State<SettingsMenu> {
             Navigator.pushNamed(context, '/modules_menu');
             break;
           case 2:
-            Navigator.pushNamed(context, '/addfield_menu');
+            Navigator.pushNamed(context, '/dictionary_menu');
             break;
           case 3:
             Navigator.pushNamed(context, '/profile_menu');

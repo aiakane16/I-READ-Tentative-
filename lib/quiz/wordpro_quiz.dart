@@ -5,6 +5,7 @@ import 'package:record/record.dart';
 import 'package:speech_to_text/speech_to_text.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import '../mainmenu/modules_menu.dart';
 
 class WordProQuiz extends StatefulWidget {
   final String moduleTitle;
@@ -90,8 +91,7 @@ class _WordProQuizState extends State<WordProQuiz> {
     if (hasPermission) {
       await _record.start(
         const RecordConfig(
-          encoder:
-              AudioEncoder.pcm16bits, // Use PCM encoder for web compatibility
+          encoder: AudioEncoder.pcm16bits,
         ),
         path: '',
       );
@@ -145,8 +145,8 @@ class _WordProQuizState extends State<WordProQuiz> {
     try {
       String correctAnswer = questions[currentQuestionIndex]['correctAnswer'];
 
-      if (recognizedText.toLowerCase().trim() ==
-          correctAnswer.toLowerCase().trim()) {
+      // Normalize both recognized text and correct answer for comparison
+      if (_normalizeText(recognizedText) == _normalizeText(correctAnswer)) {
         setState(() {
           feedbackMessage = 'Correct!';
           feedbackIcon = Icons.check_circle; // Correct icon
@@ -163,6 +163,10 @@ class _WordProQuizState extends State<WordProQuiz> {
         feedbackIcon = Icons.error;
       });
     }
+  }
+
+  String _normalizeText(String text) {
+    return text.toLowerCase().replaceAll(RegExp(r'[.,!?;]'), '').trim();
   }
 
   void _nextQuestion() {
@@ -193,9 +197,18 @@ class _WordProQuizState extends State<WordProQuiz> {
                 Navigator.of(context).pop(); // Close dialog
                 await _record.stop(); // Stop recording
                 await _updateUserProgress(); // Update user progress in Firebase
-                if (mounted) {
-                  Navigator.pop(context); // Go back to modules menu
-                }
+
+                // Navigate to ModulesMenu and remove all previous routes
+                Navigator.of(context).pushAndRemoveUntil(
+                  MaterialPageRoute(
+                    builder: (context) => ModulesMenu(
+                      onModulesUpdated: (modules) {
+                        // Handle module updates here if needed
+                      },
+                    ),
+                  ),
+                  (route) => false, // Remove all previous routes
+                );
               },
               child: const Text('Finish'),
             ),
@@ -221,7 +234,7 @@ class _WordProQuizState extends State<WordProQuiz> {
         .collection('progress')
         .doc(widget.moduleTitle)
         .set({
-      'status': 'COMPLETE', // Set status to uppercase
+      'status': 'COMPLETED', // Set status to uppercase
       'lastQuestionIndex': questions.length - 1, // Add last question index
     }, SetOptions(merge: true));
 
@@ -248,7 +261,7 @@ class _WordProQuizState extends State<WordProQuiz> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Word Pronunciation'),
-        backgroundColor: Colors.blue,
+        backgroundColor: Colors.blue[900], // Consistent app bar color
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -258,66 +271,88 @@ class _WordProQuizState extends State<WordProQuiz> {
             end: Alignment.bottomCenter,
           ),
         ),
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              questions.isNotEmpty
-                  ? questions[currentQuestionIndex]['question'] ?? 'Loading...'
-                  : 'Loading...',
-              style: const TextStyle(fontSize: 24, color: Colors.white),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              recognizedText.isNotEmpty ? recognizedText : 'Say something...',
-              style: const TextStyle(fontSize: 18, color: Colors.white),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: isRecording ? _stopRecording : _startRecording,
-              style: ElevatedButton.styleFrom(
-                shape: const CircleBorder(), backgroundColor: Colors.blue,
-                padding: const EdgeInsets.all(20), // Background color
-              ),
-              child: Icon(
-                isRecording ? Icons.stop : Icons.mic,
-                size: 40,
-                color: Colors.white,
-              ),
-            ),
-            const SizedBox(height: 20),
-            if (feedbackMessage.isNotEmpty)
-              Column(
-                children: [
-                  Icon(
-                    feedbackIcon,
-                    color: feedbackIcon == Icons.check_circle
-                        ? Colors.green
-                        : feedbackIcon == Icons.cancel
-                            ? Colors.red
-                            : Colors.grey,
-                    size: 60,
+        child: SizedBox.expand(
+          // This ensures the container fills the entire screen
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Column(
+              mainAxisAlignment:
+                  MainAxisAlignment.spaceBetween, // Space between elements
+              children: [
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        questions.isNotEmpty
+                            ? questions[currentQuestionIndex]['question'] ??
+                                'Loading...'
+                            : 'Loading...',
+                        style:
+                            const TextStyle(fontSize: 24, color: Colors.white),
+                        textAlign: TextAlign.center,
+                      ),
+                      const SizedBox(height: 20),
+                      Text(
+                        recognizedText.isNotEmpty
+                            ? recognizedText
+                            : 'Say something...',
+                        style:
+                            const TextStyle(fontSize: 18, color: Colors.white),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
                   ),
-                  Text(
-                    feedbackMessage,
-                    style: TextStyle(
-                      color: feedbackIcon == Icons.check_circle
-                          ? Colors.green
-                          : Colors.red,
-                      fontSize: 24,
-                    ),
-                  ),
-                  if (feedbackIcon == Icons.check_circle)
+                ),
+                Column(
+                  children: [
                     ElevatedButton(
-                      onPressed: _nextQuestion,
-                      child: const Text('Next'),
+                      onPressed: isRecording ? _stopRecording : _startRecording,
+                      style: ElevatedButton.styleFrom(
+                        shape: const CircleBorder(),
+                        backgroundColor: Colors.blue,
+                        padding: const EdgeInsets.all(20),
+                      ),
+                      child: Icon(
+                        isRecording ? Icons.stop : Icons.mic,
+                        size: 40,
+                        color: Colors.white,
+                      ),
                     ),
-                ],
-              ),
-          ],
+                    const SizedBox(height: 20),
+                    if (feedbackMessage.isNotEmpty)
+                      Column(
+                        children: [
+                          Icon(
+                            feedbackIcon,
+                            color: feedbackIcon == Icons.check_circle
+                                ? Colors.green
+                                : feedbackIcon == Icons.cancel
+                                    ? Colors.red
+                                    : Colors.grey,
+                            size: 60,
+                          ),
+                          Text(
+                            feedbackMessage,
+                            style: TextStyle(
+                              color: feedbackIcon == Icons.check_circle
+                                  ? Colors.green
+                                  : Colors.red,
+                              fontSize: 24,
+                            ),
+                          ),
+                          if (feedbackIcon == Icons.check_circle)
+                            ElevatedButton(
+                              onPressed: _nextQuestion,
+                              child: const Text('Next'),
+                            ),
+                        ],
+                      ),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );

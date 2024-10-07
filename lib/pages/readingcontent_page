@@ -1,0 +1,54 @@
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../quiz/readcomp_quiz.dart'; // Import the quiz page
+
+class ReadingContentPage extends StatelessWidget {
+  final String level;
+
+  const ReadingContentPage({super.key, required this.level});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Reading Content - $level', style: GoogleFonts.montserrat()),
+        backgroundColor: Colors.blue[900],
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Content for $level Level',
+              style: GoogleFonts.montserrat(fontSize: 24, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Here is where you will display the reading content for the $level level.',
+              style: GoogleFonts.montserrat(fontSize: 18),
+            ),
+            // Add more reading content here
+            const Spacer(),
+            ElevatedButton(
+              onPressed: () {
+                // Navigate to the quiz when the button is pressed
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ReadCompQuiz(moduleTitle: 'Reading Comprehension'), // Pass the module title
+                  ),
+                );
+              },
+              child: Text('Play Quiz', style: GoogleFonts.montserrat()),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[900], // Change button color
+                padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 15),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}

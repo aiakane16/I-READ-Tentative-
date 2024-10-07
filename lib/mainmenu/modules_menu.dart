@@ -2,7 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:i_read_app/functions/readingcomp_levels.dart';
 import '../quiz/readcomp_quiz.dart';
+import '../quiz/sentcomp_quiz.dart';
+import '../quiz/vocabskill_quiz.dart';
 import '../quiz/wordpro_quiz.dart';
 
 class ModulesMenu extends StatefulWidget {
@@ -15,105 +18,71 @@ class ModulesMenu extends StatefulWidget {
 }
 
 class _ModulesMenuState extends State<ModulesMenu> {
-  List<String> downloadedModules = [];
-  List<bool> selectedModules = [];
-  bool isDeleteMode = false;
+  List<String> modules = [];
+  List<String> moduleStatuses = [];
+  bool isLoading = true; // To track loading state
 
   @override
   void initState() {
     super.initState();
-    _loadDownloadedModules();
+    // No Firebase calls here to avoid accessing inherited widgets
   }
 
-  Future<void> _loadDownloadedModules() async {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-    var userDoc =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
-
-    if (userDoc.exists) {
-      var modules =
-          userDoc.data()?['downloadedModules'] as List<dynamic>? ?? [];
-      setState(() {
-        downloadedModules = List<String>.from(modules);
-        selectedModules = List<bool>.filled(downloadedModules.length, false);
-      });
-    }
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _loadModules(); // Load modules when dependencies change
   }
 
-  void _toggleDeleteMode() {
-    setState(() {
-      isDeleteMode = !isDeleteMode;
-      if (!isDeleteMode) {
-        selectedModules = List<bool>.filled(downloadedModules.length, false);
-      }
-    });
-  }
-
-  Future<void> _deleteSelectedModules() async {
+  Future<void> _loadModules() async {
     try {
-      List<String> modulesToDelete = [];
-      for (int i = 0; i < selectedModules.length; i++) {
-        if (selectedModules[i]) {
-          modulesToDelete.add(downloadedModules[i]);
-        }
+      var fieldDocs =
+          await FirebaseFirestore.instance.collection('fields').get();
+      List<String> fetchedModules = [];
+
+      for (var fieldDoc in fieldDocs.docs) {
+        var modulesData = fieldDoc.data()['modules'] as List<dynamic>? ?? [];
+        fetchedModules
+            .addAll(modulesData.map((module) => module['title'] as String));
       }
 
-      if (modulesToDelete.isNotEmpty) {
-        String userId = FirebaseAuth.instance.currentUser!.uid;
+      // Fetch module statuses
+      await _fetchModuleStatuses(fetchedModules);
 
-        // Loop through each module to delete
-        for (String module in modulesToDelete) {
-          // Delete the corresponding progress document
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .collection('progress')
-              .doc(module)
-              .delete();
-
-          // Optionally decrement the XP if needed (assuming 500 XP per module)
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .update({
-            'xp': FieldValue.increment(-500), // Adjust this value as needed
-          });
-
-          // Remove from completedModules array
-          await FirebaseFirestore.instance
-              .collection('users')
-              .doc(userId)
-              .update({
-            'completedModules': FieldValue.arrayRemove([module]),
-          });
-        }
-
-        // Finally, remove the modules from downloadedModules
-        await FirebaseFirestore.instance
-            .collection('users')
-            .doc(userId)
-            .update({
-          'downloadedModules': FieldValue.arrayRemove(modulesToDelete),
-        });
-
-        setState(() {
-          downloadedModules
-              .removeWhere((module) => modulesToDelete.contains(module));
-          selectedModules = List<bool>.filled(downloadedModules.length, false);
-        });
-        widget.onModulesUpdated(downloadedModules);
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Modules deleted successfully!')),
-        );
-      }
+      setState(() {
+        modules = fetchedModules;
+        isLoading = false; // Stop loading
+      });
     } catch (e) {
-      _showErrorDialog('Error deleting modules: $e');
+      _showErrorDialog('Error loading modules: $e');
     }
+  }
+
+  Future<void> _fetchModuleStatuses(List<String> fetchedModules) async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    List<String> statuses = [];
+
+    for (String module in fetchedModules) {
+      var moduleDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('progress')
+          .doc(module)
+          .get();
+
+      // Check if the module document exists and retrieve its status
+      if (moduleDoc.exists) {
+        var data = moduleDoc.data() as Map<String, dynamic>;
+        statuses.add(data['status'] ?? 'NOT FINISHED');
+      } else {
+        statuses.add('NOT FINISHED'); // Default status if not found
+      }
+    }
+
+    moduleStatuses = statuses; // Store the fetched statuses
   }
 
   void _showErrorDialog(String message) {
-    if (!mounted) return; // Check if the widget is still mounted
-
     showDialog(
       context: context,
       builder: (context) {
@@ -133,88 +102,6 @@ class _ModulesMenuState extends State<ModulesMenu> {
     );
   }
 
-  void _confirmDeleteModules() {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Warning'),
-          content: const Text(
-            'Deleting modules will remove all your progress. Are you sure?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Cancel action
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                _deleteSelectedModules(); // Call deletion function
-                Navigator.of(context).pop(); // Close the dialog
-              },
-              child: const Text('Delete'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showQuizConfirmationDialog(String moduleTitle) {
-    // Determine the module type
-    String moduleType =
-        moduleTitle; // Assuming moduleTitle directly reflects the type
-
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Quiz Confirmation'),
-          content: Text('You will play a quiz related to $moduleTitle.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Cancel action
-              },
-              child: const Text('Cancel'),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-                // Navigate based on the module type
-                if (moduleType == 'Reading Comprehension') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          ReadCompQuiz(moduleTitle: moduleTitle),
-                    ),
-                  );
-                } else if (moduleType == 'Word Pronunciation') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          WordProQuiz(moduleTitle: moduleTitle),
-                    ),
-                  );
-                } else {
-                  // Handle other module types or show an error
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Unknown module type.')),
-                  );
-                }
-              },
-              child: const Text('Play'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -227,59 +114,35 @@ class _ModulesMenuState extends State<ModulesMenu> {
           ),
         ),
         padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Modules',
-                  style:
-                      GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.white),
-                  onPressed: _toggleDeleteMode,
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView.builder(
-                itemCount: downloadedModules.length,
-                itemBuilder: (context, index) {
-                  return FutureBuilder<DocumentSnapshot>(
-                    future: FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(FirebaseAuth.instance.currentUser!.uid)
-                        .collection('progress')
-                        .doc(downloadedModules[index])
-                        .get(),
-                    builder: (context, snapshot) {
-                      if (snapshot.connectionState == ConnectionState.waiting) {
-                        return const Center(child: CircularProgressIndicator());
-                      } else if (snapshot.hasError) {
-                        return Center(child: Text('Error: ${snapshot.error}'));
-                      } else if (snapshot.hasData && snapshot.data != null) {
-                        var moduleData =
-                            snapshot.data!.data() as Map<String, dynamic>;
+        child: isLoading
+            ? const Center(child: CircularProgressIndicator())
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Modules',
+                    style: GoogleFonts.montserrat(
+                        fontSize: 24, color: Colors.white),
+                  ),
+                  const SizedBox(height: 20),
+                  Expanded(
+                    child: ListView.builder(
+                      itemCount: modules.length,
+                      itemBuilder: (context, index) {
                         return Card(
+                          margin: const EdgeInsets.symmetric(vertical: 10),
                           child: ListTile(
                             title: Text(
-                              downloadedModules[index],
+                              modules[index],
                               style: GoogleFonts.montserrat(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 18,
-                                color: Colors.blue,
-                              ),
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.blue), // Title in blue
                             ),
                             subtitle: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const SizedBox(height: 10),
-                                Text(
-                                    'Status: ${moduleData['status'] ?? 'NOT FINISHED'}',
+                                const SizedBox(height: 5),
+                                Text('Status: ${moduleStatuses[index]}',
                                     style: GoogleFonts.montserrat(
                                         color: Colors.black)),
                                 Text('Difficulty: EASY',
@@ -291,35 +154,51 @@ class _ModulesMenuState extends State<ModulesMenu> {
                               ],
                             ),
                             onTap: () {
-                              if (!isDeleteMode) {
-                                _showQuizConfirmationDialog(
-                                    downloadedModules[index]);
+                              // Navigate to specific module
+                              if (modules[index] == 'Reading Comprehension') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                      builder: (context) =>
+                                          const ReadingComprehensionLevels()),
+                                );
+                              } else if (modules[index] ==
+                                  'Word Pronunciation') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => WordProQuiz(
+                                        moduleTitle: modules[index]),
+                                  ),
+                                );
+                              } else if (modules[index] ==
+                                  'Sentence Composition') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const SentCompQuiz(),
+                                  ),
+                                );
+                              } else if (modules[index] ==
+                                  'Vocabulary Skills') {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => VocabSkillsQuiz(
+                                        moduleTitle: modules[index]),
+                                  ),
+                                );
                               }
                             },
                           ),
                         );
-                      }
-                      return const Center(child: Text('No modules available.'));
-                    },
-                  );
-                },
+                      },
+                    ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
-      floatingActionButton: isDeleteMode
-          ? Positioned(
-              bottom: 60, // Position it above the bottom nav bar
-              right: 16,
-              child: FloatingActionButton(
-                onPressed: _confirmDeleteModules,
-                backgroundColor: Colors.red,
-                child: const Icon(Icons.delete, color: Colors.white),
-              ),
-            )
-          : null,
     );
   }
 
@@ -328,7 +207,8 @@ class _ModulesMenuState extends State<ModulesMenu> {
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
-        BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.menu_book), label: 'Dictionary'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
       ],
@@ -342,7 +222,8 @@ class _ModulesMenuState extends State<ModulesMenu> {
             Navigator.pushNamed(context, '/home');
             break;
           case 2:
-            Navigator.pushNamed(context, '/addfield_menu');
+            Navigator.pushNamed(
+                context, '/dictionary_menu'); // Change this line
             break;
           case 3:
             Navigator.pushNamed(context, '/profile_menu');

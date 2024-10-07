@@ -127,6 +127,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   }
 
   Future<void> _confirmSignUp() async {
+    // Check for empty fields
     if (_fullNameController.text.isEmpty ||
         _strandController.text.isEmpty ||
         _birthdayController.text.isEmpty ||
@@ -141,6 +142,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     }
 
     try {
+      // Create user with email and password
       UserCredential userCredential =
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: widget.emailController.text,
@@ -151,12 +153,12 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
       // Initialize user data in Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'fullName': _fullNameController.text,
-        'strand': _strandController.text,
-        'birthday': _birthdayController.text,
-        'address': _addressController.text,
+        'fullName': _fullNameController.text, // Save full name
+        'username': widget.usernameController.text, // Save username
+        'strand': _strandController.text, // Save strand
+        'birthday': _birthdayController.text, // Save birthday
+        'address': _addressController.text, // Save address
         'email': widget.emailController.text,
-        'username': widget.usernameController.text,
         'downloadedModules': [], // Start with empty
         'completedModules': [], // Start with empty
         'xp': 0,
@@ -179,10 +181,10 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         await _initializeModuleProgress(uid, 'Vocabulary Skills');
       }
 
+      // Navigate to Home Menu
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) =>
-              HomeMenu(username: widget.usernameController.text),
+          builder: (context) => const HomeMenu(),
         ),
       );
     } catch (e) {

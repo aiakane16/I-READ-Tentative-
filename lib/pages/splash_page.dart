@@ -113,8 +113,7 @@ class _SplashPageState extends State<SplashPage>
                               Navigator.of(context).pushNamed('/login');
                             },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors
-                                  .blue[600], // Blue background for Log In
+                              backgroundColor: Colors.blue[600],
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 40, vertical: 20),
                               minimumSize: const Size(double.infinity, 50),
@@ -122,8 +121,7 @@ class _SplashPageState extends State<SplashPage>
                             child: Text(
                               'Log In',
                               style: GoogleFonts.montserrat(
-                                color:
-                                    Colors.white, // Explicitly set white text
+                                color: Colors.white,
                                 fontWeight: FontWeight.bold,
                                 fontSize: 16,
                               ),
@@ -141,19 +139,17 @@ class _SplashPageState extends State<SplashPage>
                               );
                             },
                             style: TextButton.styleFrom(
-                              backgroundColor:
-                                  Colors.transparent, // Fully transparent
+                              backgroundColor: Colors.transparent,
                               padding: const EdgeInsets.symmetric(
                                   horizontal: 40, vertical: 20),
                               minimumSize: const Size(double.infinity, 50),
-                              side: BorderSide(
-                                  color: Colors.blue[600]!), // Blue border
+                              side: BorderSide(color: Colors.blue[600]!),
                             ),
                             child: Text(
                               'Sign Up',
                               style: GoogleFonts.montserrat(
                                 fontWeight: FontWeight.bold,
-                                color: Colors.white, // White text for Sign Up
+                                color: Colors.white,
                                 fontSize: 16,
                               ),
                             ),
@@ -162,7 +158,25 @@ class _SplashPageState extends State<SplashPage>
                       ],
                     ),
                   ),
-                  const SizedBox(height: 40), // Padding below the buttons
+                  const SizedBox(height: 20), // Padding below the buttons
+                  // Version text
+                  const Text(
+                    'Alpha 3.0', // Change this to your current app version
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(
+                      height: 5), // Space between version and copyright
+                  const Text(
+                    '© 2024 Batangas State University - JPLPC Malvar', // Change to your company name
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 40), // Additional padding below
                 ],
               ),
             ),

@@ -2,18 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../pages/shortstory_page.dart';
 
-class ReadCompQuiz extends StatefulWidget {
+class VocabSkillsQuiz extends StatefulWidget {
   final String moduleTitle;
 
-  const ReadCompQuiz({super.key, required this.moduleTitle});
+  const VocabSkillsQuiz({super.key, required this.moduleTitle});
 
   @override
-  _ReadCompQuizState createState() => _ReadCompQuizState();
+  _VocabSkillsQuizState createState() => _VocabSkillsQuizState();
 }
 
-class _ReadCompQuizState extends State<ReadCompQuiz> {
+class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
   int currentQuestionIndex = 0;
   int score = 0;
   int mistakes = 0;
@@ -32,13 +31,13 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
 
   Future<void> _loadQuestions() async {
     try {
-      final querySnapshot = await FirebaseFirestore.instance
+      final snapshot = await FirebaseFirestore.instance
           .collection('fields')
-          .doc(widget.moduleTitle)
+          .doc('Vocabulary Skills')
           .get();
 
-      if (querySnapshot.exists) {
-        final data = querySnapshot.data();
+      if (snapshot.exists) {
+        final data = snapshot.data();
         if (data != null && data['modules'] != null) {
           var modules = List<Map<String, dynamic>>.from(data['modules']);
           if (modules.isNotEmpty) {
@@ -51,9 +50,6 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
       setState(() {
         isLoading = false;
       });
-
-      // Show the first short story when questions are loaded
-      _showShortStory();
     } catch (e) {
       _showErrorDialog('Error loading questions: $e');
     }
@@ -79,27 +75,6 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
     );
   }
 
-  void _showShortStory() {
-    final shortStory = questions[currentQuestionIndex]['shortStory'];
-
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ShortStoryPage(
-          shortStory: shortStory,
-          onComplete: () {
-            setState(() {
-              selectedAnswerIndex = -1;
-              feedbackMessage = '';
-              isCorrect = false;
-              isAnswerSelected = false; // Ready for the quiz
-            });
-          },
-        ),
-      ),
-    );
-  }
-
   void _submitAnswer() {
     final correctAnswer = questions[currentQuestionIndex]['correctAnswer'];
 
@@ -122,18 +97,15 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
   }
 
   void _nextQuestion() {
-    if (isAnswerSelected && isCorrect) {
-      if (currentQuestionIndex < questions.length - 1) {
-        setState(() {
-          currentQuestionIndex++;
-          isAnswerSelected = false; // Reset for the next question
-          selectedAnswerIndex = -1; // Reset the selected answer
-          feedbackMessage = ''; // Clear feedback
-        });
-        _showShortStory(); // Show the next short story
-      } else {
-        _showResults();
-      }
+    if (currentQuestionIndex < questions.length - 1) {
+      setState(() {
+        currentQuestionIndex++;
+        isAnswerSelected = false; // Reset for the next question
+        selectedAnswerIndex = -1; // Reset the selected answer
+        feedbackMessage = ''; // Clear feedback
+      });
+    } else {
+      _showResults();
     }
   }
 
@@ -230,20 +202,16 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
             const SizedBox(height: 20),
             Column(
               children: options.map<Widget>((option) {
-                bool isOptionDisabled = isAnswerSelected && isCorrect;
-
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 10.0),
                   child: ElevatedButton(
-                    onPressed: isOptionDisabled
-                        ? null // Disable button if answer is correct
-                        : () {
-                            setState(() {
-                              selectedAnswerIndex = options.indexOf(option);
-                              feedbackMessage = ''; // Reset feedback message
-                              isAnswerSelected = false; // Allow resubmission
-                            });
-                          },
+                    onPressed: () {
+                      setState(() {
+                        selectedAnswerIndex = options.indexOf(option);
+                        feedbackMessage = ''; // Reset feedback message
+                        isAnswerSelected = false; // Allow resubmission
+                      });
+                    },
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
                           selectedAnswerIndex == options.indexOf(option)
@@ -263,50 +231,48 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
             ElevatedButton(
               onPressed: () {
                 if (isAnswerSelected) {
+                  // If an answer has been selected, check if it's correct
                   if (isCorrect) {
                     _nextQuestion(); // Go to the next question if correct
                   } else {
-                    // Allow resubmitting if incorrect
+                    // If incorrect, allow the user to select another option
                     setState(() {
-                      selectedAnswerIndex = -1; // Reset selection
                       feedbackMessage = ''; // Clear feedback
-                      isAnswerSelected = false; // Reset
+                      isAnswerSelected = false; // Reset for new selection
+                      selectedAnswerIndex = -1; // Reset the selection
                     });
                   }
-                } else {
-                  _submitAnswer(); // Submit answer if not selected
+                } else if (selectedAnswerIndex != -1) {
+                  _submitAnswer(); // Submit answer if selected
                 }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.green,
                 minimumSize: const Size(double.infinity, 50),
               ),
-              child: Text(isAnswerSelected
-                  ? (isCorrect ? 'Next' : 'Submit')
-                  : 'Submit'),
+              child: Text(isCorrect
+                  ? 'Next'
+                  : 'Submit'), // Change text based on correctness
             ),
             const SizedBox(height: 20),
-            if (isAnswerSelected)
-              Column(
-                children: [
-                  Text(
-                    feedbackMessage,
-                    style: TextStyle(
-                      color: isCorrect
-                          ? const Color(0xFF00FF00)
-                          : const Color(0xFFFF6666),
-                      fontSize: 24,
-                    ),
-                  ),
-                  Icon(
-                    isCorrect ? Icons.check_circle : Icons.cancel,
-                    color: isCorrect
-                        ? const Color(0xFF00FF00)
-                        : const Color(0xFFFF6666),
-                    size: 60,
-                  ),
-                ],
+            if (isAnswerSelected) ...[
+              Text(
+                feedbackMessage,
+                style: TextStyle(
+                  color: isCorrect
+                      ? const Color(0xFF00FF00)
+                      : const Color(0xFFFF6666),
+                  fontSize: 24,
+                ),
               ),
+              Icon(
+                isCorrect ? Icons.check_circle : Icons.cancel,
+                color: isCorrect
+                    ? const Color(0xFF00FF00)
+                    : const Color(0xFFFF6666),
+                size: 60,
+              ),
+            ],
           ],
         ),
       ),

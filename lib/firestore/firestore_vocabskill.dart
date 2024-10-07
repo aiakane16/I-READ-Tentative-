@@ -10,14 +10,34 @@ class FirestoreVocabSkill {
   }
 
   Future<List<Map<String, dynamic>>> getQuestions(String moduleId) async {
-    var snapshot = await _firestore
-        .collection('fields')
-        .doc('Vocabulary Skills')
-        .collection('modules')
-        .doc(moduleId)
-        .collection('questions')
-        .get();
+    try {
+      var snapshot =
+          await _firestore.collection('fields').doc('Vocabulary Skills').get();
 
-    return snapshot.docs.map((doc) => doc.data()).toList();
+      var data = snapshot.data();
+      if (data != null && data['modules'] != null) {
+        var modules = List<Map<String, dynamic>>.from(data['modules']);
+
+        // Find the module matching the given moduleId
+        var module = modules.firstWhere(
+          (module) => module['title'] == moduleId,
+          orElse: () =>
+              {'questions': []}, // Return an empty structure if not found
+        );
+
+        // Check if questions exist
+        if (module['questions'] != null) {
+          return List<Map<String, dynamic>>.from(module['questions']);
+        } else {
+          print('No questions found for module $moduleId.');
+        }
+      } else {
+        print('Data or modules are null.');
+      }
+    } catch (e) {
+      print('Error fetching questions: $e');
+    }
+
+    return []; // Return an empty list if no questions are found
   }
 }

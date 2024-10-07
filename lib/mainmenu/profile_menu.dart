@@ -66,7 +66,7 @@ class _ProfileMenuState extends State<ProfileMenu> {
               child: CircleAvatar(
                 radius: 60,
                 backgroundImage:
-                    AssetImage('assets/i_read_pic.png'), // Add your image
+                    AssetImage('assets/i_read_pic.png'), // Default image
               ),
             ),
             const SizedBox(height: 20),
@@ -88,7 +88,7 @@ class _ProfileMenuState extends State<ProfileMenu> {
             ),
             Center(
               child: Text(
-                'Tanauan School of Fisheries', // Add school name here
+                schoolName, // Add school name here
                 textAlign: TextAlign.center,
                 style: GoogleFonts.montserrat(color: Colors.white),
               ),
@@ -113,8 +113,8 @@ class _ProfileMenuState extends State<ProfileMenu> {
                   ),
                   const SizedBox(height: 10),
                   Center(
-                    child: _buildStatCard(
-                        'Modules Completed', '$completedModules/22'),
+                    child: _buildStatCard('Modules Completed',
+                        '$completedModules/4'), // Change to /4
                   ),
                 ],
               ),
@@ -153,7 +153,8 @@ class _ProfileMenuState extends State<ProfileMenu> {
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
-        BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.menu_book), label: 'Dictionary'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
       ],
@@ -170,7 +171,7 @@ class _ProfileMenuState extends State<ProfileMenu> {
             Navigator.pushNamed(context, '/modules_menu');
             break;
           case 2:
-            Navigator.pushNamed(context, '/addfield_menu');
+            Navigator.pushNamed(context, '/dictionary_menu');
             break;
           case 4:
             Navigator.pushNamed(context, '/settings_menu');

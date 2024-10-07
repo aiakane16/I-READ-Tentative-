@@ -4,111 +4,103 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'dart:math';
 import '../quiz/readcomp_quiz.dart';
+import '../quiz/wordpro_quiz.dart';
 
 class HomeMenu extends StatefulWidget {
-  const HomeMenu({super.key, required this.username});
-
-  final String username;
+  const HomeMenu({super.key});
 
   @override
   _HomeMenuState createState() => _HomeMenuState();
 }
 
 class _HomeMenuState extends State<HomeMenu> {
-  String username = '';
+  String nickname = '';
   int xp = 0;
   List<String> completedModules = [];
-  List<Map<String, dynamic>> moduleTitles = [];
+  List<Map<String, dynamic>> allModules = []; // Store all modules
 
   @override
   void initState() {
     super.initState();
-    _fetchUserStats();
-    _loadDownloadedModules();
+    _loadUserData();
+    _loadAllModules(); // Load all available modules
   }
 
-  Future<void> _fetchUserStats() async {
+  Stream<DocumentSnapshot> _fetchUserStats() {
     String userId = FirebaseAuth.instance.currentUser!.uid;
-
-    final DocumentSnapshot snapshot =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
-
-    if (snapshot.exists) {
-      final data = snapshot.data() as Map<String, dynamic>;
-      setState(() {
-        username = data['username'] ?? 'User'; // Fetch username
-        xp = data['xp'] ?? 0; // Use data instead of snapshot
-        completedModules = List<String>.from(data['completedModules'] ?? []);
-      });
-    } else {
-      print('User document does not exist');
-    }
+    return FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .snapshots();
   }
 
-  Future<void> _loadDownloadedModules() async {
+  Future<void> _loadUserData() async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
     var userDoc =
         await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
     if (userDoc.exists) {
-      var modules =
-          userDoc.data()?['downloadedModules'] as List<dynamic>? ?? [];
-      setState(() {
-        moduleTitles = List<Map<String, dynamic>>.from(
-            modules.map((module) => {'title': module}));
-      });
+      nickname = userDoc.data()?['fullName'] ?? 'User';
+      xp = userDoc.data()?['xp'] ?? 0;
+      completedModules =
+          List<String>.from(userDoc.data()?['completedModules'] ?? []);
     } else {
       print('User document does not exist');
-      setState(() {
-        moduleTitles = []; // Ensure it's empty
-      });
     }
   }
 
-  Future<List<Map<String, dynamic>>> _getModuleStatus(
-      List<String> moduleNames) async {
-    List<Map<String, dynamic>> modulesWithStatus = [];
+  Future<void> _loadAllModules() async {
+    try {
+      var fieldsSnapshot =
+          await FirebaseFirestore.instance.collection('fields').get();
+      List<Map<String, dynamic>> loadedModules = [];
 
-    for (String moduleName in moduleNames) {
+      for (var fieldDoc in fieldsSnapshot.docs) {
+        var modulesData = fieldDoc.data()['modules'] as List<dynamic>? ?? [];
+        for (var module in modulesData) {
+          loadedModules.add({
+            'title': module['title'] ?? 'Unknown Module',
+            'difficulty': module['difficulty'] ?? 'EASY',
+            'reward': module['reward'] ?? '500 XP',
+            'status': 'NOT FINISHED' // Default status
+          });
+        }
+      }
+
+      // Now fetch the status for each module
+      await _fetchModuleStatuses(loadedModules);
+
+      setState(() {
+        allModules = loadedModules;
+      });
+    } catch (e) {
+      print('Error loading all modules: $e');
+    }
+  }
+
+  Future<void> _fetchModuleStatuses(List<Map<String, dynamic>> modules) async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    for (var module in modules) {
       var moduleDoc = await FirebaseFirestore.instance
           .collection('users')
-          .doc(FirebaseAuth.instance.currentUser!.uid)
+          .doc(userId)
           .collection('progress')
-          .doc(moduleName)
+          .doc(module['title'])
           .get();
 
       if (moduleDoc.exists) {
         var data = moduleDoc.data() as Map<String, dynamic>;
-        modulesWithStatus.add({
-          'title': moduleName,
-          'status': data['status'] ?? 'NOT FINISHED', // Default status
-          'difficulty': 'EASY', // Adjust as necessary
-          'reward': '500 XP' // Adjust as necessary
-        });
-      } else {
-        modulesWithStatus.add({
-          'title': moduleName,
-          'status': 'NOT FINISHED',
-          'difficulty': 'EASY',
-          'reward': '500 XP'
-        });
+        module['status'] = data['status'] ?? 'NOT FINISHED'; // Update status
       }
     }
-
-    return modulesWithStatus;
   }
 
   Future<List<Map<String, dynamic>>> _getRandomModules() async {
     final random = Random();
-    List<Map<String, dynamic>> modulesWithStatus = await _getModuleStatus(
-      moduleTitles.map((e) => e['title'] as String).toList(),
-    );
+    if (allModules.isEmpty) return []; // Return empty list if no modules
 
-    if (modulesWithStatus.length <= 2) {
-      return modulesWithStatus;
-    } else {
-      return (modulesWithStatus.toList()..shuffle(random)).sublist(0, 2);
-    }
+    // Shuffle and select 2 random modules
+    return (allModules.toList()..shuffle(random)).take(2).toList();
   }
 
   void _showModuleDialog(Map<String, dynamic> module) {
@@ -121,20 +113,14 @@ class _HomeMenuState extends State<HomeMenu> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Cancel action
+                Navigator.of(context).pop();
               },
               child: Text('Cancel', style: GoogleFonts.montserrat()),
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Close dialog
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) =>
-                        ReadCompQuiz(moduleTitle: module['title']),
-                  ),
-                ); // Navigate to the quiz
+                Navigator.of(context).pop();
+                _navigateToQuiz(module);
               },
               child: Text('Play', style: GoogleFonts.montserrat()),
             ),
@@ -144,90 +130,134 @@ class _HomeMenuState extends State<HomeMenu> {
     );
   }
 
+  void _navigateToQuiz(Map<String, dynamic> module) {
+    String moduleTitle = module['title'];
+    if (moduleTitle == 'Reading Comprehension') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ReadCompQuiz(moduleTitle: moduleTitle),
+        ),
+      );
+    } else if (moduleTitle == 'Word Pronunciation') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => WordProQuiz(moduleTitle: moduleTitle),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Unknown module type.')),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue[900]!, Colors.blue[700]!],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-          ),
-        ),
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Welcome, $username!',
-                  style:
-                      GoogleFonts.montserrat(fontSize: 24, color: Colors.white),
-                ),
-                const Icon(Icons.person, color: Colors.white, size: 30),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Container(
+      body: StreamBuilder<DocumentSnapshot>(
+        stream: _fetchUserStats(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return const Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (snapshot.hasData && snapshot.data!.exists) {
+            final data = snapshot.data!.data() as Map<String, dynamic>;
+            nickname =
+                data['fullName'] ?? 'User'; // Fetch full name or nickname
+            xp = data['xp'] ?? 0;
+
+            return Container(
               decoration: BoxDecoration(
-                color: Colors.blue[800],
-                borderRadius: BorderRadius.circular(10),
+                gradient: LinearGradient(
+                  colors: [Colors.blue[900]!, Colors.blue[700]!],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
               ),
-              padding: const EdgeInsets.all(15),
-              width: double.infinity,
+              padding: const EdgeInsets.all(20.0),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.start,
                 children: [
-                  Text('Ranking: #1/100',
-                      style: GoogleFonts.montserrat(color: Colors.white)),
-                  Text('XP Earned: $xp',
-                      style: GoogleFonts.montserrat(color: Colors.white)),
-                  Text('Modules Completed: ${completedModules.length}/22',
-                      style: GoogleFonts.montserrat(color: Colors.white)),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Welcome, $nickname!',
+                        style: GoogleFonts.montserrat(
+                            fontSize: 24, color: Colors.white),
+                      ),
+                      const Icon(Icons.person, color: Colors.white, size: 30),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Container(
+                    decoration: BoxDecoration(
+                      color: Colors.blue[800],
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    padding: const EdgeInsets.all(15),
+                    width: double.infinity,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Ranking: #1/4',
+                            style: GoogleFonts.montserrat(color: Colors.white)),
+                        Text('XP Earned: $xp',
+                            style: GoogleFonts.montserrat(color: Colors.white)),
+                        Text('Modules Completed: ${completedModules.length}/4',
+                            style: GoogleFonts.montserrat(color: Colors.white)),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Text('Recommendations',
+                      style: GoogleFonts.montserrat(
+                          fontSize: 18, color: Colors.white)),
+                  const SizedBox(height: 10),
+                  Expanded(
+                    child: FutureBuilder<List<Map<String, dynamic>>>(
+                      future: _getRandomModules(),
+                      builder: (context, snapshot) {
+                        if (snapshot.connectionState ==
+                            ConnectionState.waiting) {
+                          return const Center(
+                              child: CircularProgressIndicator());
+                        } else if (snapshot.hasError) {
+                          return Center(
+                              child: Text('Error: ${snapshot.error}'));
+                        } else if (snapshot.hasData) {
+                          return ListView(
+                            children: snapshot.data!.map((module) {
+                              return MouseRegion(
+                                cursor: SystemMouseCursors.click,
+                                child: GestureDetector(
+                                  onTap: () => _showModuleDialog(module),
+                                  child: _buildModuleCard(
+                                    context,
+                                    module['title'],
+                                    module['status'] ?? 'Not Finished',
+                                    module['difficulty'] ?? 'EASY',
+                                    module['reward'] ?? '500 XP',
+                                  ),
+                                ),
+                              );
+                            }).toList(),
+                          );
+                        }
+                        return const Center(
+                            child: Text('No modules available.'));
+                      },
+                    ),
+                  ),
                 ],
               ),
-            ),
-            const SizedBox(height: 20),
-            Text('Recommendations',
-                style:
-                    GoogleFonts.montserrat(fontSize: 18, color: Colors.white)),
-            const SizedBox(height: 10),
-            Expanded(
-              child: FutureBuilder<List<Map<String, dynamic>>>(
-                future: _getRandomModules(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Center(child: CircularProgressIndicator());
-                  } else if (snapshot.hasError) {
-                    return Center(child: Text('Error: ${snapshot.error}'));
-                  } else if (snapshot.hasData) {
-                    return ListView(
-                      children: snapshot.data!.map((module) {
-                        return MouseRegion(
-                          cursor: SystemMouseCursors.click,
-                          child: GestureDetector(
-                            onTap: () => _showModuleDialog(module),
-                            child: _buildModuleCard(
-                              context,
-                              module['title'],
-                              module['status'],
-                              module['difficulty'],
-                              module['reward'],
-                            ),
-                          ),
-                        );
-                      }).toList(),
-                    );
-                  }
-                  return const Center(child: Text('No modules available.'));
-                },
-              ),
-            ),
-          ],
-        ),
+            );
+          }
+          return const Center(child: Text('User document does not exist.'));
+        },
       ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
     );
@@ -268,7 +298,8 @@ class _HomeMenuState extends State<HomeMenu> {
       items: const [
         BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
         BottomNavigationBarItem(icon: Icon(Icons.book), label: 'Modules'),
-        BottomNavigationBarItem(icon: Icon(Icons.add), label: 'Add'),
+        BottomNavigationBarItem(
+            icon: Icon(Icons.menu_book), label: 'Dictionary'),
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
       ],
@@ -282,7 +313,7 @@ class _HomeMenuState extends State<HomeMenu> {
             Navigator.pushNamed(context, '/modules_menu');
             break;
           case 2:
-            Navigator.pushNamed(context, '/addfield_menu');
+            Navigator.pushNamed(context, '/dictionary_menu');
             break;
           case 3:
             Navigator.pushNamed(context, '/profile_menu');

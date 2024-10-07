@@ -185,22 +185,6 @@ class _LoginPageState extends State<LoginPage> {
                       style: const TextStyle(color: Colors.red)),
                 ),
               const SizedBox(height: 20),
-              Row(
-                children: [
-                  Checkbox(
-                    value: _rememberMe,
-                    onChanged: (value) {
-                      setState(() {
-                        _rememberMe = value!;
-                      });
-                    },
-                    activeColor: Colors.blue[600],
-                  ),
-                  Text('Remember Me',
-                      style: GoogleFonts.montserrat(color: Colors.white)),
-                ],
-              ),
-              const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: _handleLogin,
                 style: ElevatedButton.styleFrom(
