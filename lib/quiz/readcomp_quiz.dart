@@ -2,12 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../mainmenu/modules_menu.dart';
 import '../pages/shortstory_page.dart';
 
 class ReadCompQuiz extends StatefulWidget {
   final String moduleTitle;
+  final List<String> uniqueIds; // Change this to a list
 
-  const ReadCompQuiz({super.key, required this.moduleTitle});
+  const ReadCompQuiz({
+    super.key,
+    required this.moduleTitle,
+    required this.uniqueIds, // Update to accept a list
+  });
 
   @override
   _ReadCompQuizState createState() => _ReadCompQuizState();
@@ -20,7 +26,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
   List<Map<String, dynamic>> questions = [];
   bool isLoading = true;
   bool isAnswerSelected = false;
-  int selectedAnswerIndex = -1; // Track selected option
+  int selectedAnswerIndex = -1;
   String feedbackMessage = '';
   bool isCorrect = false;
 
@@ -32,30 +38,37 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
 
   Future<void> _loadQuestions() async {
     try {
+      String uniqueId = 'myoLYQD0ML1gWuSI0t1U'; // Hardcoded for testing
+      String moduleTitle =
+          'Easy'; // Adjust this to the correct difficulty level
+
       final querySnapshot = await FirebaseFirestore.instance
           .collection('fields')
-          .doc(widget.moduleTitle)
+          .doc('Reading Comprehension')
+          .collection(moduleTitle)
+          .doc(uniqueId)
           .get();
 
       if (querySnapshot.exists) {
         final data = querySnapshot.data();
+
         if (data != null && data['modules'] != null) {
-          var modules = List<Map<String, dynamic>>.from(data['modules']);
-          if (modules.isNotEmpty) {
-            var questionsData = modules[0]['questions'] ?? [];
-            questions = List<Map<String, dynamic>>.from(questionsData);
+          var modulesData = data['modules'] as List<dynamic>;
+          for (var module in modulesData) {
+            if (module['questions'] != null) {
+              var questionsData = module['questions'] as List<dynamic>;
+              questions.addAll(List<Map<String, dynamic>>.from(questionsData));
+            }
           }
         }
       }
-
+    } catch (e) {
+      _showErrorDialog(
+          'Failed to load questions. Please try again.'); // Show error dialog
+    } finally {
       setState(() {
         isLoading = false;
       });
-
-      // Show the first short story when questions are loaded
-      _showShortStory();
-    } catch (e) {
-      _showErrorDialog('Error loading questions: $e');
     }
   }
 
@@ -80,31 +93,34 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
   }
 
   void _showShortStory() {
-    final shortStory = questions[currentQuestionIndex]['shortStory'];
+    if (questions.isNotEmpty) {
+      final shortStory = questions[currentQuestionIndex]['shortStory'];
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ShortStoryPage(
-          shortStory: shortStory,
-          onComplete: () {
-            setState(() {
-              selectedAnswerIndex = -1;
-              feedbackMessage = '';
-              isCorrect = false;
-              isAnswerSelected = false; // Ready for the quiz
-            });
-          },
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => ShortStoryPage(
+            shortStory: shortStory,
+            onComplete: () {
+              setState(() {
+                selectedAnswerIndex = -1;
+                feedbackMessage = '';
+                isCorrect = false;
+                isAnswerSelected = false; // Ready for the quiz
+              });
+            },
+          ),
         ),
-      ),
-    );
+      );
+    }
   }
 
   void _submitAnswer() {
     final correctAnswer = questions[currentQuestionIndex]['correctAnswer'];
 
-    if (questions[currentQuestionIndex]['options'][selectedAnswerIndex] ==
-        correctAnswer) {
+    if (selectedAnswerIndex != -1 &&
+        questions[currentQuestionIndex]['options'][selectedAnswerIndex] ==
+            correctAnswer) {
       setState(() {
         score++;
         feedbackMessage = "You are correct!";
@@ -132,7 +148,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
         });
         _showShortStory(); // Show the next short story
       } else {
-        _showResults();
+        _showResults(); // Show results if it's the last question
       }
     }
   }
@@ -147,14 +163,14 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
         .collection('progress')
         .doc(widget.moduleTitle)
         .set({
-      'status': 'COMPLETED', // Set status to uppercase
+      'status': 'COMPLETED',
       'mistakes': mistakes,
-      'time': 0, // Add any other relevant fields as needed
+      'time': 0,
     }, SetOptions(merge: true));
 
     // Update user XP in the users collection
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'xp': FieldValue.increment(500), // Increment XP in the correct place
+      'xp': FieldValue.increment(500), // Increment XP
     });
 
     // Add module to completedModules
@@ -162,6 +178,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
       'completedModules': FieldValue.arrayUnion([widget.moduleTitle]),
     });
 
+    // Show results dialog
     showDialog(
       context: context,
       builder: (context) {
@@ -172,8 +189,18 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.pop(context); // Return to modules menu
+                Navigator.of(context).pop(); // Close the dialog
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ModulesMenu(
+                      onModulesUpdated: (List<String> updatedModules) {
+                        // Handle the updated modules here
+                        // For example, you might want to refresh the displayed modules
+                      },
+                    ),
+                  ),
+                );
               },
               child: const Text('Done'),
             ),
@@ -194,6 +221,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
         appBar: AppBar(
           title: Text(widget.moduleTitle, style: GoogleFonts.montserrat()),
           backgroundColor: Colors.blue[900],
+          foregroundColor: Colors.white, // Set text color to white
         ),
         body: isLoading
             ? const Center(child: CircularProgressIndicator())

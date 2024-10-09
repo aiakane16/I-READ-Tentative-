@@ -215,7 +215,10 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
   @override
   Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         backgroundColor: Colors.blue[900],
         elevation: 0,
@@ -234,7 +237,8 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             end: Alignment.bottomCenter,
           ),
         ),
-        padding: const EdgeInsets.all(20.0),
+        padding: EdgeInsets.symmetric(
+            horizontal: width * 0.05, vertical: height * 0.02),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [

@@ -166,6 +166,7 @@ class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
         appBar: AppBar(
           title: Text(widget.moduleTitle, style: GoogleFonts.montserrat()),
           backgroundColor: Colors.blue[900],
+          foregroundColor: Colors.white, // Set text color to white
         ),
         body: isLoading
             ? const Center(child: CircularProgressIndicator())

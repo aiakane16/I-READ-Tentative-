@@ -261,7 +261,8 @@ class _WordProQuizState extends State<WordProQuiz> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Word Pronunciation'),
-        backgroundColor: Colors.blue[900], // Consistent app bar color
+        backgroundColor: Colors.blue[900],
+        foregroundColor: Colors.white, // Set text color to white
       ),
       body: Container(
         decoration: BoxDecoration(
@@ -272,12 +273,10 @@ class _WordProQuizState extends State<WordProQuiz> {
           ),
         ),
         child: SizedBox.expand(
-          // This ensures the container fills the entire screen
           child: Padding(
             padding: const EdgeInsets.all(20.0),
             child: Column(
-              mainAxisAlignment:
-                  MainAxisAlignment.spaceBetween, // Space between elements
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
                   child: Column(

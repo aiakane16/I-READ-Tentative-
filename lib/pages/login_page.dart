@@ -15,7 +15,7 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  bool _rememberMe = false;
+  final bool _rememberMe = false;
   bool _isPasswordVisible = false;
   String? _emailError;
   String? _passwordError;
@@ -89,7 +89,10 @@ class _LoginPageState extends State<LoginPage> {
 
   @override
   Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -98,7 +101,8 @@ class _LoginPageState extends State<LoginPage> {
             end: Alignment.bottomCenter,
           ),
         ),
-        padding: const EdgeInsets.all(20.0),
+        padding: EdgeInsets.symmetric(
+            horizontal: width * 0.05, vertical: height * 0.02),
         child: Form(
           key: _formKey,
           child: Column(

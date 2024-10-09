@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class EditProfilePage extends StatefulWidget {
@@ -12,8 +13,8 @@ class EditProfilePage extends StatefulWidget {
 
 class _EditProfilePageState extends State<EditProfilePage> {
   final TextEditingController _usernameController = TextEditingController();
-  final TextEditingController _fullNameController = TextEditingController();
-  String? _selectedStrand; // To store the selected strand
+  String? _fullName; // Store full name
+  String? _selectedStrand; // Store the selected strand
 
   // List of strands
   final List<String> strands = [
@@ -35,12 +36,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
     if (userSnapshot.exists) {
       setState(() {
-        _usernameController.text =
-            userSnapshot.get('username') ?? ''; // Fetch nickname
-        _fullNameController.text =
-            userSnapshot.get('fullName') ?? ''; // Fetch full name
+        _fullName = userSnapshot.get('fullName') ?? ''; // Fetch full name
         _selectedStrand =
             userSnapshot.get('strand') ?? strands[0]; // Default to first strand
+        _usernameController.text =
+            userSnapshot.get('username') ?? ''; // Fetch username
       });
     } else {
       print('User document does not exist');
@@ -51,9 +51,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
     String userId = FirebaseAuth.instance.currentUser!.uid;
 
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'fullName': _fullNameController.text,
-      'strand': _selectedStrand,
-      'username': _usernameController.text,
+      'username': _usernameController.text, // Only update username
     });
 
     Navigator.of(context).pop(); // Go back after saving
@@ -62,6 +60,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      resizeToAvoidBottomInset: true,
       appBar: AppBar(
         title: Text('Edit Profile',
             style: GoogleFonts.montserrat(color: Colors.white)),
@@ -78,58 +77,49 @@ class _EditProfilePageState extends State<EditProfilePage> {
         ),
         child: Column(
           children: [
+            // Full Name - uneditable
             TextField(
-              controller: _fullNameController,
-              style: const TextStyle(
-                  color: Colors.white), // Change text color to white
+              controller: TextEditingController(text: _fullName),
+              readOnly: true,
+              style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(
                 labelText: 'Full Name',
-                labelStyle: TextStyle(
-                    color: Colors.white), // Change label color to white
+                labelStyle: TextStyle(color: Colors.white),
                 border: OutlineInputBorder(),
               ),
             ),
             const SizedBox(height: 10),
+
+            // Strand - uneditable
             TextField(
-              controller: _usernameController,
-              style: const TextStyle(
-                  color: Colors.white), // Change text color to white
-              decoration: const InputDecoration(
-                labelText: 'Nickname',
-                labelStyle: TextStyle(
-                    color: Colors.white), // Change label color to white
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 10),
-            DropdownButtonFormField<String>(
-              value: _selectedStrand,
+              controller: TextEditingController(text: _selectedStrand),
+              readOnly: true,
+              style: const TextStyle(color: Colors.white),
               decoration: const InputDecoration(
                 labelText: 'Strand',
-                labelStyle: TextStyle(
-                    color: Colors.white), // Change label color to white
+                labelStyle: TextStyle(color: Colors.white),
                 border: OutlineInputBorder(),
               ),
-              items: strands.map((String strand) {
-                return DropdownMenuItem<String>(
-                  value: strand,
-                  child: Text(strand,
-                      style: const TextStyle(
-                          color: Colors
-                              .white)), // Change dropdown item text color to white
-                );
-              }).toList(),
-              onChanged: (String? newValue) {
-                setState(() {
-                  _selectedStrand = newValue;
-                });
-              },
-              dropdownColor:
-                  Colors.blue[700], // Change dropdown background color
+            ),
+            const SizedBox(height: 10),
+
+            // Username - editable
+            TextField(
+              controller: _usernameController,
+              inputFormatters: [
+                LengthLimitingTextInputFormatter(10)
+              ], // Restrict to 10 characters
+              style: const TextStyle(color: Colors.white),
+              decoration: const InputDecoration(
+                labelText: 'Username',
+                labelStyle: TextStyle(color: Colors.white),
+                border: OutlineInputBorder(),
+              ),
             ),
             const SizedBox(height: 20),
+
             ElevatedButton(
-              onPressed: _updateProfile, // Change button text to white
+              onPressed: _updateProfile,
               style:
                   ElevatedButton.styleFrom(backgroundColor: Colors.blue[900]),
               child: Text('Save Changes',

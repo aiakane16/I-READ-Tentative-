@@ -13,6 +13,8 @@ class DictionaryMenu extends StatelessWidget {
       'Vocabulary Skills': 'Improving the range of words you use.',
       'Word Pronunciation': 'Correctly saying words aloud.',
     };
+    double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
 
     return Scaffold(
       appBar: AppBar(
@@ -30,7 +32,8 @@ class DictionaryMenu extends StatelessWidget {
             end: Alignment.bottomCenter,
           ),
         ),
-        padding: const EdgeInsets.all(20.0),
+        padding: EdgeInsets.symmetric(
+            horizontal: width * 0.05, vertical: height * 0.02),
         child: ListView(
           children: dictionaryEntries.entries.map((entry) {
             return Card(

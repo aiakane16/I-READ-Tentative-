@@ -54,7 +54,7 @@ class _SentenceCompositionQuizState extends State<SentCompQuiz> {
         if (questions.isNotEmpty) {
           setState(() {
             currentQuestionIndex = 0;
-            this.correctAnswer =
+            correctAnswer =
                 questions[currentQuestionIndex]['correctAnswer'].trim();
             options = List.from(questions[currentQuestionIndex]['options']);
             sentenceWithBlanks = questions[currentQuestionIndex]['blanks'];
@@ -98,9 +98,9 @@ class _SentenceCompositionQuizState extends State<SentCompQuiz> {
 
     for (int i = 0; i < wordsInBlanks.length; i++) {
       if (wordsInBlanks[i] == '___') {
-        userAnswer += userSelections[i] + ' '; // Add user selection for blank
+        userAnswer += '${userSelections[i]} '; // Add user selection for blank
       } else {
-        userAnswer += wordsInBlanks[i] + ' '; // Add the original word
+        userAnswer += '${wordsInBlanks[i]} '; // Add the original word
       }
     }
 
@@ -157,8 +157,7 @@ class _SentenceCompositionQuizState extends State<SentCompQuiz> {
     if (currentQuestionIndex < questions.length - 1) {
       setState(() {
         currentQuestionIndex++;
-        this.correctAnswer =
-            questions[currentQuestionIndex]['correctAnswer'].trim();
+        correctAnswer = questions[currentQuestionIndex]['correctAnswer'].trim();
         options = List.from(questions[currentQuestionIndex]['options']);
         sentenceWithBlanks = questions[currentQuestionIndex]['blanks'];
         userSelections = List.filled(sentenceWithBlanks.split(' ').length, '');
@@ -182,6 +181,7 @@ class _SentenceCompositionQuizState extends State<SentCompQuiz> {
       appBar: AppBar(
         title: const Text('Sentence Composition Quiz'),
         backgroundColor: Colors.blue[900],
+        foregroundColor: Colors.white, // Set text color to white
       ),
       body: Container(
         decoration: BoxDecoration(

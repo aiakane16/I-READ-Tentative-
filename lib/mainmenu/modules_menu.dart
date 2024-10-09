@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:i_read_app/functions/readingcomp_levels.dart';
-import '../quiz/readcomp_quiz.dart';
+import 'package:i_read_app/levels/readingcomp_levels.dart';
 import '../quiz/sentcomp_quiz.dart';
 import '../quiz/vocabskill_quiz.dart';
 import '../quiz/wordpro_quiz.dart';
@@ -20,12 +19,13 @@ class ModulesMenu extends StatefulWidget {
 class _ModulesMenuState extends State<ModulesMenu> {
   List<String> modules = [];
   List<String> moduleStatuses = [];
-  bool isLoading = true; // To track loading state
+  List<int> moduleCompleted = []; // Track completed quizzes for each module
+  List<int> moduleTotal = []; // Track total quizzes for each module
+  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    // No Firebase calls here to avoid accessing inherited widgets
   }
 
   @override
@@ -40,18 +40,25 @@ class _ModulesMenuState extends State<ModulesMenu> {
           await FirebaseFirestore.instance.collection('fields').get();
       List<String> fetchedModules = [];
 
+      // Add "Reading Comprehension" as a module
+      fetchedModules.add('Reading Comprehension');
+
       for (var fieldDoc in fieldDocs.docs) {
         var modulesData = fieldDoc.data()['modules'] as List<dynamic>? ?? [];
         fetchedModules
             .addAll(modulesData.map((module) => module['title'] as String));
       }
 
-      // Fetch module statuses
       await _fetchModuleStatuses(fetchedModules);
+
+      // Initialize completed and total counts
+      moduleCompleted = List.filled(fetchedModules.length, 0);
+      moduleTotal = List.filled(
+          fetchedModules.length, 3); // Assume 3 for Reading Comprehension
 
       setState(() {
         modules = fetchedModules;
-        isLoading = false; // Stop loading
+        isLoading = false;
       });
     } catch (e) {
       _showErrorDialog('Error loading modules: $e');
@@ -70,7 +77,6 @@ class _ModulesMenuState extends State<ModulesMenu> {
           .doc(module)
           .get();
 
-      // Check if the module document exists and retrieve its status
       if (moduleDoc.exists) {
         var data = moduleDoc.data() as Map<String, dynamic>;
         statuses.add(data['status'] ?? 'NOT FINISHED');
@@ -104,6 +110,8 @@ class _ModulesMenuState extends State<ModulesMenu> {
 
   @override
   Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -113,7 +121,8 @@ class _ModulesMenuState extends State<ModulesMenu> {
             end: Alignment.bottomCenter,
           ),
         ),
-        padding: const EdgeInsets.all(20.0),
+        padding: EdgeInsets.symmetric(
+            horizontal: width * 0.05, vertical: height * 0.02),
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : Column(
@@ -132,25 +141,50 @@ class _ModulesMenuState extends State<ModulesMenu> {
                         return Card(
                           margin: const EdgeInsets.symmetric(vertical: 10),
                           child: ListTile(
-                            title: Text(
-                              modules[index],
-                              style: GoogleFonts.montserrat(
-                                  fontWeight: FontWeight.bold,
-                                  color: Colors.blue), // Title in blue
-                            ),
-                            subtitle: Column(
+                            title: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
+                                // Make module title larger
+                                Text(
+                                  modules[index],
+                                  style: GoogleFonts.montserrat(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 18, // Increased size for title
+                                      color: Colors.blue),
+                                ),
                                 const SizedBox(height: 5),
-                                Text('Status: ${moduleStatuses[index]}',
-                                    style: GoogleFonts.montserrat(
-                                        color: Colors.black)),
-                                Text('Difficulty: EASY',
-                                    style: GoogleFonts.montserrat(
-                                        color: Colors.black)),
-                                Text('Reward: 500 XP',
-                                    style: GoogleFonts.montserrat(
-                                        color: Colors.lightBlue)),
+                                // Smaller text for status, difficulty, and reward
+                                Text(
+                                  'Status: ${moduleStatuses[index]}',
+                                  style: GoogleFonts.montserrat(
+                                      fontSize: 14, // Decreased size
+                                      color: Colors.black),
+                                ),
+                                Text(
+                                  'Difficulty: EASY',
+                                  style: GoogleFonts.montserrat(
+                                      fontSize: 14, // Decreased size
+                                      color: Colors.black),
+                                ),
+                                Text(
+                                  'Reward: 500 XP',
+                                  style: GoogleFonts.montserrat(
+                                      fontSize: 14, // Decreased size
+                                      color: Colors.lightBlue),
+                                ),
+                                const SizedBox(height: 5),
+                                // Progress bar
+                                LinearProgressIndicator(
+                                  value: moduleCompleted[index] /
+                                      moduleTotal[index],
+                                  backgroundColor: Colors.grey[300],
+                                  color: Colors.green,
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  '${moduleCompleted[index]} / ${moduleTotal[index]} completed',
+                                  style: GoogleFonts.montserrat(),
+                                ),
                               ],
                             ),
                             onTap: () {
@@ -223,7 +257,7 @@ class _ModulesMenuState extends State<ModulesMenu> {
             break;
           case 2:
             Navigator.pushNamed(
-                context, '/dictionary_menu'); // Change this line
+                context, '/dictionary_menu'); // Adjust as needed
             break;
           case 3:
             Navigator.pushNamed(context, '/profile_menu');

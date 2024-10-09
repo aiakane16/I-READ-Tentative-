@@ -37,6 +37,8 @@ class _ShortStoryPageState extends State<ShortStoryPage> {
 
   @override
   Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
     return Scaffold(
       appBar: AppBar(
         title: Text('Read the Story', style: GoogleFonts.montserrat()),
@@ -60,6 +62,8 @@ class _ShortStoryPageState extends State<ShortStoryPage> {
             end: Alignment.bottomCenter,
           ),
         ),
+        padding: EdgeInsets.symmetric(
+            horizontal: width * 0.05, vertical: height * 0.02),
         child: Padding(
           padding: const EdgeInsets.all(20.0),
           child: Center(

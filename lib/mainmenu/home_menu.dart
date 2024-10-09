@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:i_read_app/quiz/vocabskill_quiz.dart';
 import 'dart:math';
 import '../quiz/readcomp_quiz.dart';
+import '../quiz/sentcomp_quiz.dart';
 import '../quiz/wordpro_quiz.dart';
 
 class HomeMenu extends StatefulWidget {
@@ -17,13 +19,13 @@ class _HomeMenuState extends State<HomeMenu> {
   String nickname = '';
   int xp = 0;
   List<String> completedModules = [];
-  List<Map<String, dynamic>> allModules = []; // Store all modules
+  List<Map<String, dynamic>> allModules = [];
 
   @override
   void initState() {
     super.initState();
     _loadUserData();
-    _loadAllModules(); // Load all available modules
+    _loadAllModules();
   }
 
   Stream<DocumentSnapshot> _fetchUserStats() {
@@ -40,7 +42,7 @@ class _HomeMenuState extends State<HomeMenu> {
         await FirebaseFirestore.instance.collection('users').doc(userId).get();
 
     if (userDoc.exists) {
-      nickname = userDoc.data()?['fullName'] ?? 'User';
+      nickname = userDoc.data()?['username'] ?? 'User';
       xp = userDoc.data()?['xp'] ?? 0;
       completedModules =
           List<String>.from(userDoc.data()?['completedModules'] ?? []);
@@ -62,12 +64,11 @@ class _HomeMenuState extends State<HomeMenu> {
             'title': module['title'] ?? 'Unknown Module',
             'difficulty': module['difficulty'] ?? 'EASY',
             'reward': module['reward'] ?? '500 XP',
-            'status': 'NOT FINISHED' // Default status
+            'status': 'NOT FINISHED'
           });
         }
       }
 
-      // Now fetch the status for each module
       await _fetchModuleStatuses(loadedModules);
 
       setState(() {
@@ -90,44 +91,17 @@ class _HomeMenuState extends State<HomeMenu> {
 
       if (moduleDoc.exists) {
         var data = moduleDoc.data() as Map<String, dynamic>;
-        module['status'] = data['status'] ?? 'NOT FINISHED'; // Update status
+        module['status'] = data['status'] ?? 'NOT FINISHED';
       }
     }
   }
 
   Future<List<Map<String, dynamic>>> _getRandomModules() async {
     final random = Random();
-    if (allModules.isEmpty) return []; // Return empty list if no modules
-
-    // Shuffle and select 2 random modules
-    return (allModules.toList()..shuffle(random)).take(2).toList();
-  }
-
-  void _showModuleDialog(Map<String, dynamic> module) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: const Text('Quiz Confirmation'),
-          content: Text('You will play a quiz related to ${module['title']}.'),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text('Cancel', style: GoogleFonts.montserrat()),
-            ),
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _navigateToQuiz(module);
-              },
-              child: Text('Play', style: GoogleFonts.montserrat()),
-            ),
-          ],
-        );
-      },
-    );
+    if (allModules.isEmpty) return [];
+    return (allModules.toList()..shuffle(random))
+        .take(2)
+        .toList(); // Changed back to 2
   }
 
   void _navigateToQuiz(Map<String, dynamic> module) {
@@ -136,7 +110,10 @@ class _HomeMenuState extends State<HomeMenu> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ReadCompQuiz(moduleTitle: moduleTitle),
+          builder: (context) => ReadCompQuiz(
+            moduleTitle: moduleTitle,
+            uniqueIds: const [],
+          ),
         ),
       );
     } else if (moduleTitle == 'Word Pronunciation') {
@@ -146,6 +123,20 @@ class _HomeMenuState extends State<HomeMenu> {
           builder: (context) => WordProQuiz(moduleTitle: moduleTitle),
         ),
       );
+    } else if (moduleTitle == 'Sentence Composition') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => SentCompQuiz(),
+        ),
+      );
+    } else if (moduleTitle == 'Vocabulary Skills') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => VocabSkillsQuiz(moduleTitle: moduleTitle),
+        ),
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Unknown module type.')),
@@ -153,8 +144,156 @@ class _HomeMenuState extends State<HomeMenu> {
     }
   }
 
+  void _showChangelog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: Colors.blue,
+          title: Text(
+            'Changelog',
+            style: GoogleFonts.montserrat(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: ListBody(
+              children: [
+                Text(
+                  'October 09, 2024',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  'Beta 1.1 (0.3.1)',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'What\'s New?',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  '- Mobile optimization for main interfaces.\n'
+                  '- Updated interface for Reading Comprehension Module.\n'
+                  '- Added Changelogs.',
+                  style:
+                      GoogleFonts.montserrat(fontSize: 14, color: Colors.white),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Bug Fixes',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  '- Backend improvements.\n'
+                  '- Fixed some files going to the wrong interface.\n'
+                  '- Fixed Edit Profile.\n'
+                  '- More minor bug fixes.',
+                  style:
+                      GoogleFonts.montserrat(fontSize: 14, color: Colors.white),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'Coming soon in future builds!',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  '- Updated interface for Sentence Composition Module.\n'
+                  '- Adding Help feature for how-to-guide.\n'
+                  '- Ranking feature.\n'
+                  '- Adding module contents and quizzes, replacing the sample ones.\n'
+                  '- Experience points mechanics.\n'
+                  '- More backend improvements.\n'
+                  '- Dictionary feature.\n'
+                  '- Mobile optimization for quizzes\' interface.\n'
+                  '- ...and more!',
+                  style:
+                      GoogleFonts.montserrat(fontSize: 14, color: Colors.white),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'October 07, 2024',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 24,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  'Beta 1.0 (0.3.0)',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  'What\'s New?',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                Text(
+                  '- Initial Release!',
+                  style:
+                      GoogleFonts.montserrat(fontSize: 14, color: Colors.white),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: Text(
+                'Close',
+                style: GoogleFonts.montserrat(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  void _showHelp() {
+    // Help dialog or screen can be shown here
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Help feature coming soon!')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
+
     return Scaffold(
       body: StreamBuilder<DocumentSnapshot>(
         stream: _fetchUserStats(),
@@ -165,8 +304,7 @@ class _HomeMenuState extends State<HomeMenu> {
             return Center(child: Text('Error: ${snapshot.error}'));
           } else if (snapshot.hasData && snapshot.data!.exists) {
             final data = snapshot.data!.data() as Map<String, dynamic>;
-            nickname =
-                data['fullName'] ?? 'User'; // Fetch full name or nickname
+            nickname = data['username'] ?? 'User';
             xp = data['xp'] ?? 0;
 
             return Container(
@@ -177,7 +315,8 @@ class _HomeMenuState extends State<HomeMenu> {
                   end: Alignment.bottomCenter,
                 ),
               ),
-              padding: const EdgeInsets.all(20.0),
+              padding: EdgeInsets.symmetric(
+                  horizontal: width * 0.05, vertical: height * 0.02),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [
@@ -187,9 +326,10 @@ class _HomeMenuState extends State<HomeMenu> {
                       Text(
                         'Welcome, $nickname!',
                         style: GoogleFonts.montserrat(
-                            fontSize: 24, color: Colors.white),
+                          fontSize: width * 0.06,
+                          color: Colors.white,
+                        ),
                       ),
-                      const Icon(Icons.person, color: Colors.white, size: 30),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -215,7 +355,7 @@ class _HomeMenuState extends State<HomeMenu> {
                   const SizedBox(height: 20),
                   Text('Recommendations',
                       style: GoogleFonts.montserrat(
-                          fontSize: 18, color: Colors.white)),
+                          fontSize: width * 0.05, color: Colors.white)),
                   const SizedBox(height: 10),
                   Expanded(
                     child: FutureBuilder<List<Map<String, dynamic>>>(
@@ -228,29 +368,112 @@ class _HomeMenuState extends State<HomeMenu> {
                         } else if (snapshot.hasError) {
                           return Center(
                               child: Text('Error: ${snapshot.error}'));
-                        } else if (snapshot.hasData) {
-                          return ListView(
-                            children: snapshot.data!.map((module) {
-                              return MouseRegion(
-                                cursor: SystemMouseCursors.click,
-                                child: GestureDetector(
-                                  onTap: () => _showModuleDialog(module),
-                                  child: _buildModuleCard(
-                                    context,
-                                    module['title'],
-                                    module['status'] ?? 'Not Finished',
-                                    module['difficulty'] ?? 'EASY',
-                                    module['reward'] ?? '500 XP',
+                        } else if (snapshot.hasData &&
+                            snapshot.data!.isNotEmpty) {
+                          return ListView.builder(
+                            itemCount: snapshot.data!.length,
+                            itemBuilder: (context, index) {
+                              var module = snapshot.data![index];
+                              return Card(
+                                margin:
+                                    const EdgeInsets.symmetric(vertical: 10),
+                                child: ListTile(
+                                  title: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        module['title'],
+                                        style: GoogleFonts.montserrat(
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 18,
+                                          color: Colors.blue,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        'Status: ${module['status']}',
+                                        style: GoogleFonts.montserrat(
+                                          fontSize: 14,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Difficulty: ${module['difficulty']}',
+                                        style: GoogleFonts.montserrat(
+                                          fontSize: 14,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                      Text(
+                                        'Reward: ${module['reward']}',
+                                        style: GoogleFonts.montserrat(
+                                          fontSize: 14,
+                                          color: Colors.lightBlue,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 5),
+                                      LinearProgressIndicator(
+                                        value: module['progress'] ?? 0.0,
+                                        backgroundColor: Colors.grey[300],
+                                        color: Colors.green,
+                                      ),
+                                      const SizedBox(height: 5),
+                                      Text(
+                                        '${module['completed']} / ${module['total']} completed',
+                                        style: GoogleFonts.montserrat(),
+                                      ),
+                                    ],
                                   ),
+                                  onTap: () => _navigateToQuiz(module),
                                 ),
                               );
-                            }).toList(),
+                            },
                           );
                         }
                         return const Center(
                             child: Text('No modules available.'));
                       },
                     ),
+                  ),
+                  const SizedBox(height: 10),
+                  // Changelog and Help buttons
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.lightBlue,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 25,
+                              vertical: 15), // Increased padding
+                        ),
+                        onPressed: _showChangelog,
+                        child: Text(
+                          "Changelog",
+                          style: GoogleFonts.montserrat(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                      ElevatedButton(
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.lightBlue,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 25,
+                              vertical: 15), // Increased padding
+                        ),
+                        onPressed: _showHelp,
+                        child: Text(
+                          "Help",
+                          style: GoogleFonts.montserrat(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -260,36 +483,6 @@ class _HomeMenuState extends State<HomeMenu> {
         },
       ),
       bottomNavigationBar: _buildBottomNavigationBar(context),
-    );
-  }
-
-  Widget _buildModuleCard(BuildContext context, String title, String status,
-      String difficulty, String reward) {
-    return Card(
-      color: Colors.white,
-      margin: const EdgeInsets.symmetric(vertical: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: GoogleFonts.montserrat(
-                  fontWeight: FontWeight.bold,
-                  color: Colors.blue,
-                  fontSize: 18),
-            ),
-            const SizedBox(height: 10),
-            Text('Status: $status',
-                style: GoogleFonts.montserrat(color: Colors.black)),
-            Text('Difficulty: $difficulty',
-                style: GoogleFonts.montserrat(color: Colors.black)),
-            Text('Reward: $reward',
-                style: GoogleFonts.montserrat(color: Colors.blue)),
-          ],
-        ),
-      ),
     );
   }
 

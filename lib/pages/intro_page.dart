@@ -7,6 +7,8 @@ class IntroPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -16,6 +18,8 @@ class IntroPage extends StatelessWidget {
             end: Alignment.bottomCenter,
           ),
         ),
+        padding: EdgeInsets.symmetric(
+            horizontal: width * 0.05, vertical: height * 0.02),
         child: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

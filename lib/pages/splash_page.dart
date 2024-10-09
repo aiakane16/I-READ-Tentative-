@@ -59,6 +59,8 @@ class _SplashPageState extends State<SplashPage>
 
   @override
   Widget build(BuildContext context) {
+    double width = MediaQuery.of(context).size.width;
+    double height = MediaQuery.of(context).size.height;
     return Scaffold(
       body: Container(
         width: double.infinity,
@@ -70,6 +72,8 @@ class _SplashPageState extends State<SplashPage>
             end: Alignment.bottomCenter,
           ),
         ),
+        padding: EdgeInsets.symmetric(
+            horizontal: width * 0.05, vertical: height * 0.02),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -161,7 +165,7 @@ class _SplashPageState extends State<SplashPage>
                   const SizedBox(height: 20), // Padding below the buttons
                   // Version text
                   const Text(
-                    'Alpha 3.0', // Change this to your current app version
+                    'Beta 1.1 (0.3.1)', // Change this to your current app version
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,
