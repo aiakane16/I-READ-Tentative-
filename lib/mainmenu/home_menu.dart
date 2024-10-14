@@ -1,11 +1,11 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:i_read_app/quiz/vocabskill_quiz.dart';
-import 'dart:math';
-import '../quiz/readcomp_quiz.dart';
+import '../levels/readingcomp_levels.dart';
 import '../quiz/sentcomp_quiz.dart';
+import '../quiz/vocabskill_quiz.dart';
 import '../quiz/wordpro_quiz.dart';
 
 class HomeMenu extends StatefulWidget {
@@ -20,6 +20,7 @@ class _HomeMenuState extends State<HomeMenu> {
   int xp = 0;
   List<String> completedModules = [];
   List<Map<String, dynamic>> allModules = [];
+  Map<String, int> completedDifficultiesCountMap = {};
 
   @override
   void initState() {
@@ -69,6 +70,16 @@ class _HomeMenuState extends State<HomeMenu> {
         }
       }
 
+      if (!loadedModules
+          .any((module) => module['title'] == 'Reading Comprehension')) {
+        loadedModules.add({
+          'title': 'Reading Comprehension',
+          'difficulty': 'EASY',
+          'reward': '500 XP',
+          'status': 'NOT FINISHED',
+        });
+      }
+
       await _fetchModuleStatuses(loadedModules);
 
       setState(() {
@@ -97,23 +108,25 @@ class _HomeMenuState extends State<HomeMenu> {
   }
 
   Future<List<Map<String, dynamic>>> _getRandomModules() async {
-    final random = Random();
-    if (allModules.isEmpty) return [];
-    return (allModules.toList()..shuffle(random))
-        .take(2)
-        .toList(); // Changed back to 2
+    var rng = Random();
+    List<Map<String, dynamic>> randomModules = [];
+
+    if (allModules.isNotEmpty) {
+      allModules.shuffle(rng);
+      randomModules = allModules.take(2).toList();
+    }
+
+    return randomModules;
   }
 
   void _navigateToQuiz(Map<String, dynamic> module) {
     String moduleTitle = module['title'];
+
     if (moduleTitle == 'Reading Comprehension') {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => ReadCompQuiz(
-            moduleTitle: moduleTitle,
-            uniqueIds: const [],
-          ),
+          builder: (context) => ReadingComprehensionLevels(),
         ),
       );
     } else if (moduleTitle == 'Word Pronunciation') {
@@ -142,151 +155,6 @@ class _HomeMenuState extends State<HomeMenu> {
         const SnackBar(content: Text('Unknown module type.')),
       );
     }
-  }
-
-  void _showChangelog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: Colors.blue,
-          title: Text(
-            'Changelog',
-            style: GoogleFonts.montserrat(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.white,
-            ),
-          ),
-          content: SingleChildScrollView(
-            child: ListBody(
-              children: [
-                Text(
-                  'October 09, 2024',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  'Beta 1.1 (0.3.1)',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'What\'s New?',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  '- Mobile optimization for main interfaces.\n'
-                  '- Updated interface for Reading Comprehension Module.\n'
-                  '- Added Changelogs.',
-                  style:
-                      GoogleFonts.montserrat(fontSize: 14, color: Colors.white),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Bug Fixes',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  '- Backend improvements.\n'
-                  '- Fixed some files going to the wrong interface.\n'
-                  '- Fixed Edit Profile.\n'
-                  '- More minor bug fixes.',
-                  style:
-                      GoogleFonts.montserrat(fontSize: 14, color: Colors.white),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Coming soon in future builds!',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  '- Updated interface for Sentence Composition Module.\n'
-                  '- Adding Help feature for how-to-guide.\n'
-                  '- Ranking feature.\n'
-                  '- Adding module contents and quizzes, replacing the sample ones.\n'
-                  '- Experience points mechanics.\n'
-                  '- More backend improvements.\n'
-                  '- Dictionary feature.\n'
-                  '- Mobile optimization for quizzes\' interface.\n'
-                  '- ...and more!',
-                  style:
-                      GoogleFonts.montserrat(fontSize: 14, color: Colors.white),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'October 07, 2024',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 24,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  'Beta 1.0 (0.3.0)',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'What\'s New?',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                Text(
-                  '- Initial Release!',
-                  style:
-                      GoogleFonts.montserrat(fontSize: 14, color: Colors.white),
-                ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-              },
-              child: Text(
-                'Close',
-                style: GoogleFonts.montserrat(color: Colors.white),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
-  void _showHelp() {
-    // Help dialog or screen can be shown here
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Help feature coming soon!')),
-    );
   }
 
   @override
@@ -323,10 +191,24 @@ class _HomeMenuState extends State<HomeMenu> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(
-                        'Welcome, $nickname!',
-                        style: GoogleFonts.montserrat(
-                          fontSize: width * 0.06,
+                      Padding(
+                        padding: const EdgeInsets.only(top: 10.0),
+                        child: Text(
+                          'Welcome, $nickname!',
+                          style: GoogleFonts.montserrat(
+                            fontSize: width * 0.06,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.all(12.0),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: Colors.blue[800], // Changed to dark blue
+                        ),
+                        child: const Icon(
+                          Icons.help,
                           color: Colors.white,
                         ),
                       ),
@@ -347,13 +229,15 @@ class _HomeMenuState extends State<HomeMenu> {
                             style: GoogleFonts.montserrat(color: Colors.white)),
                         Text('XP Earned: $xp',
                             style: GoogleFonts.montserrat(color: Colors.white)),
-                        Text('Modules Completed: ${completedModules.length}/4',
-                            style: GoogleFonts.montserrat(color: Colors.white)),
+                        Text(
+                          'Modules Completed: ${completedModules.length}/4',
+                          style: GoogleFonts.montserrat(color: Colors.white),
+                        ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 20),
-                  Text('Recommendations',
+                  Text('Recommended Modules',
                       style: GoogleFonts.montserrat(
                           fontSize: width * 0.05, color: Colors.white)),
                   const SizedBox(height: 10),
@@ -374,6 +258,7 @@ class _HomeMenuState extends State<HomeMenu> {
                             itemCount: snapshot.data!.length,
                             itemBuilder: (context, index) {
                               var module = snapshot.data![index];
+
                               return Card(
                                 margin:
                                     const EdgeInsets.symmetric(vertical: 10),
@@ -412,17 +297,6 @@ class _HomeMenuState extends State<HomeMenu> {
                                           color: Colors.lightBlue,
                                         ),
                                       ),
-                                      const SizedBox(height: 5),
-                                      LinearProgressIndicator(
-                                        value: module['progress'] ?? 0.0,
-                                        backgroundColor: Colors.grey[300],
-                                        color: Colors.green,
-                                      ),
-                                      const SizedBox(height: 5),
-                                      Text(
-                                        '${module['completed']} / ${module['total']} completed',
-                                        style: GoogleFonts.montserrat(),
-                                      ),
                                     ],
                                   ),
                                   onTap: () => _navigateToQuiz(module),
@@ -435,45 +309,6 @@ class _HomeMenuState extends State<HomeMenu> {
                             child: Text('No modules available.'));
                       },
                     ),
-                  ),
-                  const SizedBox(height: 10),
-                  // Changelog and Help buttons
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.lightBlue,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 25,
-                              vertical: 15), // Increased padding
-                        ),
-                        onPressed: _showChangelog,
-                        child: Text(
-                          "Changelog",
-                          style: GoogleFonts.montserrat(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                      ElevatedButton(
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.lightBlue,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 25,
-                              vertical: 15), // Increased padding
-                        ),
-                        onPressed: _showHelp,
-                        child: Text(
-                          "Help",
-                          style: GoogleFonts.montserrat(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ),
-                    ],
                   ),
                 ],
               ),
@@ -496,12 +331,15 @@ class _HomeMenuState extends State<HomeMenu> {
         BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Settings'),
       ],
-      currentIndex: 0,
+      currentIndex: 0, // Set correctly based on the current page
       selectedItemColor: Colors.blue[900],
       unselectedItemColor: Colors.lightBlue,
       backgroundColor: Colors.white,
       onTap: (index) {
         switch (index) {
+          case 0:
+            // Already on Home, do nothing
+            break;
           case 1:
             Navigator.pushNamed(context, '/modules_menu');
             break;

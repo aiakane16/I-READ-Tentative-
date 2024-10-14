@@ -165,7 +165,7 @@ class _SplashPageState extends State<SplashPage>
                   const SizedBox(height: 20), // Padding below the buttons
                   // Version text
                   const Text(
-                    'Beta 1.1 (0.3.1)', // Change this to your current app version
+                    'Beta 1.2 (0.3.2)', // Change this to your current app version
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,
@@ -174,7 +174,7 @@ class _SplashPageState extends State<SplashPage>
                   const SizedBox(
                       height: 5), // Space between version and copyright
                   const Text(
-                    '© 2024 Batangas State University - JPLPC Malvar', // Change to your company name
+                    '© 2024 Tanauan School of Fisheries', // Change to your company name
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,

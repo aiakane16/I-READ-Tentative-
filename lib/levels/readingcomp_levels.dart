@@ -1,10 +1,88 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../pages/readingcontent_page.dart'; // Import your ReadingContentPage
+import '../indevelop.dart';
+import '../quiz/readcompcontent/readingcontent_easy.dart'; // Import your ReadingContentPage
 
-class ReadingComprehensionLevels extends StatelessWidget {
+class ReadingComprehensionLevels extends StatefulWidget {
   const ReadingComprehensionLevels({super.key});
+
+  @override
+  _ReadingComprehensionLevelsState createState() =>
+      _ReadingComprehensionLevelsState();
+}
+
+class _ReadingComprehensionLevelsState
+    extends State<ReadingComprehensionLevels> {
+  final String easyId =
+      'bwR5cpbDO1WEWg0q1lbCjbUcKAk1-Reading Comprehension-Easy';
+  final String mediumId =
+      'your_medium_unique_id'; // Replace with actual medium ID
+  final String hardId = 'your_hard_unique_id'; // Replace with actual hard ID
+
+  bool isEasyCompleted = false;
+  bool isMediumCompleted = false;
+  bool isHardCompleted = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkCompletionStatus();
+  }
+
+  Future<void> _checkCompletionStatus() async {
+    String userId = await _getUserId();
+    await _checkDifficultyStatus(userId, easyId).then((completed) {
+      setState(() {
+        isEasyCompleted = completed;
+      });
+    });
+
+    await _checkDifficultyStatus(userId, mediumId).then((completed) {
+      setState(() {
+        isMediumCompleted = completed;
+      });
+    });
+
+    await _checkDifficultyStatus(userId, hardId).then((completed) {
+      setState(() {
+        isHardCompleted = completed;
+      });
+    });
+  }
+
+  Future<String> _getUserId() async {
+    try {
+      var user = FirebaseAuth.instance.currentUser;
+      return user?.uid ??
+          ''; // Return the user ID or an empty string if not found
+    } catch (e) {
+      print('Error fetching user ID: $e');
+      return ''; // Default to an empty string
+    }
+  }
+
+  Future<bool> _checkDifficultyStatus(
+      String userId, String difficultyId) async {
+    try {
+      DocumentSnapshot snapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('progress')
+          .doc('Reading Comprehension')
+          .collection('difficulty')
+          .doc(difficultyId)
+          .get();
+
+      if (snapshot.exists) {
+        return snapshot['status'] == 'COMPLETED';
+      }
+    } catch (e) {
+      print('Error checking difficulty status for $difficultyId: $e');
+    }
+    return false; // Default to not completed
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,7 +91,7 @@ class ReadingComprehensionLevels extends StatelessWidget {
         title: Text('Reading Comprehension Levels',
             style: GoogleFonts.montserrat()),
         backgroundColor: Colors.blue[900],
-        foregroundColor: Colors.white, // Set text color to white
+        foregroundColor: Colors.white,
       ),
       body: Container(
         width: double.infinity,
@@ -32,10 +110,10 @@ class ReadingComprehensionLevels extends StatelessWidget {
             _buildLevelButton(context, 'Easy', true), // Always unlocked
             const SizedBox(height: 20),
             _buildLevelButton(context, 'Medium',
-                false), // Placeholder for actual completion logic
+                isEasyCompleted), // Unlocked if Easy is completed
             const SizedBox(height: 20),
             _buildLevelButton(context, 'Hard',
-                false), // Placeholder for actual completion logic
+                isMediumCompleted), // Unlocked if Medium is completed
           ],
         ),
       ),
@@ -47,19 +125,44 @@ class ReadingComprehensionLevels extends StatelessWidget {
     return ElevatedButton(
       onPressed: isUnlocked
           ? () async {
-              List<String> uniqueIds = await _fetchUniqueIds(level);
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => ReadingContentPage(
-                      level: level, uniqueIds: uniqueIds // Pass unique IDs
-                      ),
-                ),
-              );
+              if (level == 'Medium') {
+                // Navigate to the development screen if Medium is clicked
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const DevelopmentScreen(),
+                  ),
+                );
+              } else {
+                // For Easy and Hard levels
+                List<String> uniqueIds = await _fetchUniqueIds(level);
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ReadingContentPage(
+                      level: level,
+                      uniqueIds: uniqueIds,
+                    ),
+                  ),
+                ).then((result) {
+                  // Assume result is a boolean indicating completion
+                  if (result == true) {
+                    _onLevelCompleted(level);
+                  }
+                });
+              }
             }
           : null, // Disable button if locked
       style: ElevatedButton.styleFrom(
-        backgroundColor: isUnlocked ? Colors.blue : Colors.grey,
+        backgroundColor: isUnlocked
+            ? (level == 'Easy' && isEasyCompleted
+                ? Colors.green
+                : (level == 'Medium' && isMediumCompleted
+                    ? Colors.green
+                    : (level == 'Hard' && isHardCompleted
+                        ? Colors.green
+                        : Colors.blue)))
+            : Colors.grey,
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 25),
       ),
       child: Row(
@@ -89,16 +192,28 @@ class ReadingComprehensionLevels extends StatelessWidget {
       var snapshot = await FirebaseFirestore.instance
           .collection('fields')
           .doc('Reading Comprehension')
-          .collection(difficulty) // Fetching based on difficulty
+          .collection(difficulty)
           .get();
 
       for (var doc in snapshot.docs) {
-        uniqueIds.add(doc.id); // Add unique ID to the list
+        uniqueIds.add(doc.id);
       }
     } catch (e) {
-      // Handle error (optional: show a message to the user)
+      print('Error fetching unique IDs for $difficulty: $e');
     }
 
     return uniqueIds;
+  }
+
+  void _onLevelCompleted(String level) {
+    setState(() {
+      if (level == 'Easy') {
+        isEasyCompleted = true;
+      } else if (level == 'Medium') {
+        isMediumCompleted = true;
+      } else if (level == 'Hard') {
+        isHardCompleted = true;
+      }
+    });
   }
 }

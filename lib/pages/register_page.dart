@@ -46,13 +46,15 @@ class _RegisterPageState extends State<RegisterPage> {
   String? _validateUsername(String? value) {
     if (value == null || value.isEmpty) {
       return 'Please input a username';
+    } else if (value.length > 10) {
+      return 'Username must be at most 10 characters';
     }
     return null;
   }
 
   String? _validatePassword(String? value) {
     if (value == null || value.isEmpty || !_isPasswordValid(value)) {
-      return 'Please input at least 8 characters';
+      return 'Password must be 8-10 characters';
     }
     return null;
   }
@@ -79,7 +81,7 @@ class _RegisterPageState extends State<RegisterPage> {
   }
 
   Future<void> checkEmailExists(String email) async {
-    final QuerySnapshot result = await FirebaseFirestore.instance
+    final result = await FirebaseFirestore.instance
         .collection('users')
         .where('email', isEqualTo: email)
         .get();
@@ -119,11 +121,11 @@ class _RegisterPageState extends State<RegisterPage> {
 
   @override
   Widget build(BuildContext context) {
-    double width = MediaQuery.of(context).size.width;
-    double height = MediaQuery.of(context).size.height;
     return Scaffold(
       resizeToAvoidBottomInset: true,
+      backgroundColor: Colors.transparent, // Set to transparent
       body: Container(
+        height: MediaQuery.of(context).size.height, // Full height
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [Colors.blue[900]!, Colors.blue[700]!],
@@ -132,198 +134,200 @@ class _RegisterPageState extends State<RegisterPage> {
           ),
         ),
         padding: EdgeInsets.symmetric(
-            horizontal: width * 0.05, vertical: height * 0.02),
-        child: Form(
-          key: _formKey,
-          autovalidateMode: AutovalidateMode.onUserInteraction,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            children: [
-              const SizedBox(height: 10),
-              Image.asset('assets/i_read_pic.png', width: 75, height: 75),
-              const SizedBox(height: 10),
-              Text(
-                "Let's Get You Started!",
-                style: GoogleFonts.montserrat(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Create an account to access I-READ',
-                style: GoogleFonts.montserrat(
-                  color: Colors.white,
-                  fontSize: 16,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 20),
-
-              // Email Field
-              TextFormField(
-                controller: _emailController,
-                maxLength: 30,
-                decoration: InputDecoration(
-                  labelText: 'E-Mail',
-                  labelStyle: const TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: const OutlineInputBorder(),
-                  hintText: 'Enter E-mail here...',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon: const Icon(Icons.email, color: Colors.white),
-                ),
-                style: GoogleFonts.montserrat(color: Colors.white),
-                validator: _validateEmail,
-                buildCounter: (context,
-                    {required currentLength, required isFocused, maxLength}) {
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // Username Field
-              TextFormField(
-                controller: _usernameController,
-                maxLength: 15,
-                decoration: InputDecoration(
-                  labelText: 'Username',
-                  labelStyle: const TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: const OutlineInputBorder(),
-                  hintText: 'Enter username here...',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon: const Icon(Icons.person, color: Colors.white),
-                ),
-                style: GoogleFonts.montserrat(color: Colors.white),
-                validator: _validateUsername,
-                buildCounter: (context,
-                    {required currentLength, required isFocused, maxLength}) {
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // Password Field
-              TextFormField(
-                controller: _passwordController,
-                obscureText: !_isPasswordVisible,
-                maxLength: 10,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  labelStyle: const TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: const OutlineInputBorder(),
-                  hintText: 'Enter password here...',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon: const Icon(Icons.lock, color: Colors.white),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isPasswordVisible
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                      color: Colors.white,
-                    ),
-                    onPressed: _togglePasswordVisibility,
-                  ),
-                ),
-                style: GoogleFonts.montserrat(color: Colors.white),
-                validator: _validatePassword,
-                buildCounter: (context,
-                    {required currentLength, required isFocused, maxLength}) {
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // Confirm Password Field
-              TextFormField(
-                controller: _confirmPasswordController,
-                obscureText: !_isConfirmPasswordVisible,
-                maxLength: 10,
-                decoration: InputDecoration(
-                  labelText: 'Confirm Password',
-                  labelStyle: const TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: const OutlineInputBorder(),
-                  hintText: 'Confirm password here...',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon:
-                      const Icon(Icons.lock_outline, color: Colors.white),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                      _isConfirmPasswordVisible
-                          ? Icons.visibility
-                          : Icons.visibility_off,
-                      color: Colors.white,
-                    ),
-                    onPressed: _toggleConfirmPasswordVisibility,
-                  ),
-                ),
-                style: GoogleFonts.montserrat(color: Colors.white),
-                validator: _validateConfirmPassword,
-                buildCounter: (context,
-                    {required currentLength, required isFocused, maxLength}) {
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-
-              // Next Button
-              ElevatedButton(
-                onPressed: _handleNext,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: Text(
-                  'Next',
+          horizontal: MediaQuery.of(context).size.width * 0.1,
+          vertical: MediaQuery.of(context).size.height * 0.05,
+        ),
+        child: SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const SizedBox(height: 20),
+                Image.asset('assets/i_read_pic.png', width: 75, height: 75),
+                const SizedBox(height: 20),
+                Text(
+                  "Let's Get You Started!",
                   style: GoogleFonts.montserrat(
                     color: Colors.white,
+                    fontSize: 24,
                     fontWeight: FontWeight.bold,
                   ),
+                  textAlign: TextAlign.center,
                 ),
-              ),
+                const SizedBox(height: 10),
+                Text(
+                  'Create an account to access I-READ',
+                  style: GoogleFonts.montserrat(
+                    color: Colors.white,
+                    fontSize: 16,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
 
-              const SizedBox(height: 20),
+                // Email Field
+                _buildTextField(
+                  controller: _emailController,
+                  label: 'E-Mail',
+                  hint: 'Enter E-mail here...',
+                  icon: Icons.email,
+                  validator: _validateEmail,
+                ),
+                const SizedBox(height: 20),
 
-              // Link to Login
-              RichText(
-                text: TextSpan(
-                  style: GoogleFonts.montserrat(color: Colors.white),
-                  children: <TextSpan>[
-                    const TextSpan(text: "Already have an account? "),
-                    TextSpan(
-                      text: "Login",
-                      style: const TextStyle(
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.underline,
-                      ),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          Navigator.pushReplacement(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => const LoginPage(),
-                            ),
-                          );
-                        },
+                // Username Field
+                _buildTextField(
+                  controller: _usernameController,
+                  label: 'Username',
+                  hint: 'Enter username here...',
+                  icon: Icons.person,
+                  validator: _validateUsername,
+                  maxLength: 10, // Restrict max length to 10 characters
+                ),
+                const SizedBox(height: 20),
+
+                // Password Field
+                _buildPasswordField(
+                  controller: _passwordController,
+                  label: 'Password',
+                  hint: 'Enter password here...',
+                  isVisible: _isPasswordVisible,
+                  toggleVisibility: _togglePasswordVisibility,
+                  validator: _validatePassword,
+                ),
+                const SizedBox(height: 20),
+
+                // Confirm Password Field
+                _buildPasswordField(
+                  controller: _confirmPasswordController,
+                  label: 'Confirm Password',
+                  hint: 'Confirm password here...',
+                  isVisible: _isConfirmPasswordVisible,
+                  toggleVisibility: _toggleConfirmPasswordVisibility,
+                  validator: _validateConfirmPassword,
+                ),
+                const SizedBox(height: 20),
+
+                // Next Button
+                ElevatedButton(
+                  onPressed: _handleNext,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.blue[600],
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 40, vertical: 20),
+                    minimumSize: const Size(double.infinity, 50),
+                  ),
+                  child: Text(
+                    'Next',
+                    style: GoogleFonts.montserrat(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            ],
+
+                const SizedBox(height: 20),
+
+                // Link to Login
+                RichText(
+                  text: TextSpan(
+                    style: GoogleFonts.montserrat(color: Colors.white),
+                    children: <TextSpan>[
+                      const TextSpan(text: "Already have an account? "),
+                      TextSpan(
+                        text: "Login",
+                        style: const TextStyle(
+                          fontWeight: FontWeight.bold,
+                          decoration: TextDecoration.underline,
+                        ),
+                        recognizer: TapGestureRecognizer()
+                          ..onTap = () {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const LoginPage(),
+                              ),
+                            );
+                          },
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    String? Function(String?)? validator,
+    int? maxLength, // Optional maxLength parameter
+  }) {
+    return TextFormField(
+      controller: controller,
+      maxLength: maxLength, // Set maxLength if provided
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white),
+        filled: true,
+        fillColor: Colors.blue[800]?.withOpacity(0.3),
+        border: const OutlineInputBorder(),
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white54),
+        prefixIcon: Icon(icon, color: Colors.white),
+      ),
+      style: GoogleFonts.montserrat(color: Colors.white),
+      validator: validator,
+      buildCounter: (context,
+          {required currentLength, required isFocused, maxLength}) {
+        return const SizedBox.shrink(); // Hides the character limit
+      },
+    );
+  }
+
+  Widget _buildPasswordField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required bool isVisible,
+    required VoidCallback toggleVisibility,
+    String? Function(String?)? validator,
+  }) {
+    return TextFormField(
+      controller: controller,
+      obscureText: !isVisible,
+      maxLength: 10,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white),
+        filled: true,
+        fillColor: Colors.blue[800]?.withOpacity(0.3),
+        border: const OutlineInputBorder(),
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white54),
+        prefixIcon: const Icon(Icons.lock, color: Colors.white),
+        suffixIcon: IconButton(
+          icon: Icon(
+            isVisible ? Icons.visibility : Icons.visibility_off,
+            color: Colors.white,
+          ),
+          onPressed: toggleVisibility,
+        ),
+      ),
+      style: GoogleFonts.montserrat(color: Colors.white),
+      validator: validator,
+      buildCounter: (context,
+          {required currentLength, required isFocused, maxLength}) {
+        return const SizedBox.shrink(); // Hides the character limit
+      },
     );
   }
 }

@@ -13,17 +13,11 @@ class DictionaryMenu extends StatelessWidget {
       'Vocabulary Skills': 'Improving the range of words you use.',
       'Word Pronunciation': 'Correctly saying words aloud.',
     };
+
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Dictionary',
-            style: GoogleFonts.montserrat(
-                color: Colors.white)), // Set title color to white
-        backgroundColor: Colors.blue[900],
-        automaticallyImplyLeading: false, // Remove back arrow
-      ),
       body: Container(
         decoration: BoxDecoration(
           gradient: LinearGradient(
@@ -34,26 +28,47 @@ class DictionaryMenu extends StatelessWidget {
         ),
         padding: EdgeInsets.symmetric(
             horizontal: width * 0.05, vertical: height * 0.02),
-        child: ListView(
-          children: dictionaryEntries.entries.map((entry) {
-            return Card(
-              color: Colors.white, // White background for cards
-              child: ListTile(
-                title: Text(
-                  entry.key,
-                  style: GoogleFonts.montserrat(
-                    fontWeight: FontWeight.bold,
-                    color: Colors.blue, // Blue color for module name
-                  ),
-                ),
-                subtitle: Text(
-                  entry.value,
-                  style: GoogleFonts.montserrat(
-                      color: Colors.black), // Black color for description
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(
+                height: 10), // Adjusted height for the "Dictionary" text
+            Padding(
+              padding: const EdgeInsets.only(top: 10.0),
+              child: Text(
+                'Dictionary',
+                style: GoogleFonts.montserrat(
+                  fontSize: width *
+                      0.06, // Match the text size to the greeting message
+                  color: Colors.white,
                 ),
               ),
-            );
-          }).toList(),
+            ),
+            const SizedBox(height: 20),
+            Expanded(
+              child: ListView(
+                children: dictionaryEntries.entries.map((entry) {
+                  return Card(
+                    color: Colors.white, // White background for cards
+                    child: ListTile(
+                      title: Text(
+                        entry.key,
+                        style: GoogleFonts.montserrat(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.blue, // Blue color for module name
+                        ),
+                      ),
+                      subtitle: Text(
+                        entry.value,
+                        style: GoogleFonts.montserrat(
+                            color: Colors.black), // Black color for description
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+          ],
         ),
       ),
       bottomNavigationBar: _buildBottomNavigationBar(context),

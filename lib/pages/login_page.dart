@@ -15,7 +15,6 @@ class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
-  final bool _rememberMe = false;
   bool _isPasswordVisible = false;
   String? _emailError;
   String? _passwordError;
@@ -91,9 +90,14 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
+
     return Scaffold(
       resizeToAvoidBottomInset: true,
       body: Container(
+        padding: EdgeInsets.symmetric(
+          horizontal: width * 0.05,
+          vertical: height * 0.02,
+        ),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [Colors.blue[900]!, Colors.blue[700]!],
@@ -101,124 +105,128 @@ class _LoginPageState extends State<LoginPage> {
             end: Alignment.bottomCenter,
           ),
         ),
-        padding: EdgeInsets.symmetric(
-            horizontal: width * 0.05, vertical: height * 0.02),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Image.asset('assets/i_read_pic.png', width: 120, height: 120),
-              const SizedBox(height: 20),
-              const Text('where learning gets better.',
-                  style: TextStyle(color: Colors.white, fontSize: 16)),
-              const SizedBox(height: 10),
-              const Divider(color: Colors.white, thickness: 1),
-              const SizedBox(height: 20),
-              Text('Login',
-                  style: GoogleFonts.montserrat(
-                      color: Colors.white,
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold)),
-              const SizedBox(height: 20),
-              // Email Field
-              TextFormField(
-                controller: _emailController,
-                maxLength: 30,
-                decoration: InputDecoration(
-                  labelText: 'E-Mail',
-                  labelStyle: const TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: const OutlineInputBorder(),
-                  hintText: 'Enter E-mail here...',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon: const Icon(Icons.email, color: Colors.white),
-                ),
-                style: GoogleFonts.montserrat(color: Colors.white),
-                onChanged: _validateEmail,
-                buildCounter: (context,
-                    {required currentLength, maxLength, required isFocused}) {
-                  return null;
-                },
-              ),
-              if (_emailError != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(_emailError!,
-                      style: const TextStyle(color: Colors.red)),
-                ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _passwordController,
-                obscureText: !_isPasswordVisible,
-                maxLength: 10,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  labelStyle: const TextStyle(color: Colors.white),
-                  filled: true,
-                  fillColor: Colors.blue[800]?.withOpacity(0.3),
-                  border: const OutlineInputBorder(),
-                  hintText: 'Enter password here...',
-                  hintStyle: const TextStyle(color: Colors.white54),
-                  prefixIcon: const Icon(Icons.lock, color: Colors.white),
-                  suffixIcon: IconButton(
-                    icon: Icon(
-                        _isPasswordVisible
-                            ? Icons.visibility
-                            : Icons.visibility_off,
-                        color: Colors.white),
-                    onPressed: () {
-                      setState(() {
-                        _isPasswordVisible = !_isPasswordVisible;
-                      });
-                    },
-                  ),
-                ),
-                style: GoogleFonts.montserrat(color: Colors.white),
-                onChanged: _validatePassword,
-                buildCounter: (context,
-                    {required currentLength, maxLength, required isFocused}) {
-                  return null;
-                },
-              ),
-              if (_passwordError != null)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8.0),
-                  child: Text(_passwordError!,
-                      style: const TextStyle(color: Colors.red)),
-                ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _handleLogin,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.blue[600],
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                  minimumSize: const Size(double.infinity, 50),
-                ),
-                child: Text('Login',
-                    style: GoogleFonts.montserrat(color: Colors.white)),
-              ),
-              const SizedBox(height: 20),
-              RichText(
-                text: TextSpan(
-                  style: GoogleFonts.montserrat(color: Colors.white),
+        child: Center(
+          child: SingleChildScrollView(
+            child: Container(
+              constraints:
+                  BoxConstraints(maxWidth: 400), // Max width for larger screens
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min, // Change here
                   children: [
-                    const TextSpan(text: "Don't have an Account? "),
-                    TextSpan(
-                      text: 'Sign Up here.',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
-                      recognizer: TapGestureRecognizer()
-                        ..onTap = () {
-                          Navigator.of(context)
-                              .pushReplacementNamed('/register');
-                        },
+                    Image.asset('assets/i_read_pic.png',
+                        width: 120, height: 120),
+                    const SizedBox(height: 20),
+                    const Text('where learning gets better.',
+                        style: TextStyle(color: Colors.white, fontSize: 16)),
+                    const SizedBox(height: 10),
+                    const Divider(color: Colors.white, thickness: 1),
+                    const SizedBox(height: 20),
+                    Text('Login',
+                        style: GoogleFonts.montserrat(
+                            color: Colors.white,
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold)),
+                    const SizedBox(height: 20),
+                    // Email Field
+                    TextFormField(
+                      controller: _emailController,
+                      maxLength: 30,
+                      decoration: InputDecoration(
+                        labelText: 'E-Mail',
+                        labelStyle: const TextStyle(color: Colors.white),
+                        filled: true,
+                        fillColor: Colors.blue[800]?.withOpacity(0.3),
+                        border: const OutlineInputBorder(),
+                        hintText: 'Enter E-mail here...',
+                        hintStyle: const TextStyle(color: Colors.white54),
+                        prefixIcon:
+                            const Icon(Icons.email, color: Colors.white),
+                        counterText: '', // Set counterText to an empty string
+                      ),
+                      style: GoogleFonts.montserrat(color: Colors.white),
+                      onChanged: _validateEmail,
+                    ),
+                    if (_emailError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(_emailError!,
+                            style: const TextStyle(color: Colors.red)),
+                      ),
+                    const SizedBox(height: 20),
+                    // Password Field
+                    TextFormField(
+                      controller: _passwordController,
+                      obscureText: !_isPasswordVisible,
+                      maxLength: 10,
+                      decoration: InputDecoration(
+                        labelText: 'Password',
+                        labelStyle: const TextStyle(color: Colors.white),
+                        filled: true,
+                        fillColor: Colors.blue[800]?.withOpacity(0.3),
+                        border: const OutlineInputBorder(),
+                        hintText: 'Enter password here...',
+                        hintStyle: const TextStyle(color: Colors.white54),
+                        prefixIcon: const Icon(Icons.lock, color: Colors.white),
+                        suffixIcon: IconButton(
+                          icon: Icon(
+                              _isPasswordVisible
+                                  ? Icons.visibility
+                                  : Icons.visibility_off,
+                              color: Colors.white),
+                          onPressed: () {
+                            setState(() {
+                              _isPasswordVisible = !_isPasswordVisible;
+                            });
+                          },
+                        ),
+                        counterText: '', // Set counterText to an empty string
+                      ),
+                      style: GoogleFonts.montserrat(color: Colors.white),
+                      onChanged: _validatePassword,
+                    ),
+                    if (_passwordError != null)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8.0),
+                        child: Text(_passwordError!,
+                            style: const TextStyle(color: Colors.red)),
+                      ),
+                    const SizedBox(height: 20),
+                    ElevatedButton(
+                      onPressed: _handleLogin,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue[600],
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 40, vertical: 20),
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                      child: Text('Login',
+                          style: GoogleFonts.montserrat(color: Colors.white)),
+                    ),
+                    const SizedBox(height: 20),
+                    RichText(
+                      text: TextSpan(
+                        style: GoogleFonts.montserrat(color: Colors.white),
+                        children: [
+                          const TextSpan(text: "Don't have an Account? "),
+                          TextSpan(
+                            text: 'Sign Up here.',
+                            style: const TextStyle(fontWeight: FontWeight.bold),
+                            recognizer: TapGestureRecognizer()
+                              ..onTap = () {
+                                Navigator.of(context)
+                                    .pushReplacementNamed('/register');
+                              },
+                          ),
+                        ],
+                      ),
                     ),
                   ],
                 ),
               ),
-            ],
+            ),
           ),
         ),
       ),

@@ -39,7 +39,7 @@ android {
         applicationId = "com.example.i_read_app"
         // Update the minSdkVersion as required by the firebase_auth plugin.
         minSdkVersion 23  // Change this line
-        targetSdk = flutter.targetSdkVersion
+        targetSdk 33
         versionCode = flutterVersionCode.toInteger()
         versionName = flutterVersionName
     }

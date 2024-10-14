@@ -9,6 +9,8 @@ class FirestoreUser {
       String email, String password, Map<String, dynamic> userData) async {
     UserCredential userCredential = await _auth.createUserWithEmailAndPassword(
         email: email, password: password);
+
+    // Save user data to Firestore without createdAt timestamp
     await _firestore
         .collection('users')
         .doc(userCredential.user!.uid)

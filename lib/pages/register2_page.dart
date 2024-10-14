@@ -61,28 +61,38 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   }
 
   Future<void> _selectBirthday(BuildContext context) async {
-    DateTime now = DateTime.now();
+    DateTime firstDate = DateTime(2003, 1, 1);
+    DateTime lastDate = DateTime(2007, 12, 31);
+    DateTime initialDate =
+        DateTime.now().isBefore(lastDate) ? DateTime.now() : lastDate;
+
     DateTime? pickedDate = await showDatePicker(
       context: context,
-      initialDate: now,
-      firstDate: DateTime(2000, 1, 1),
-      lastDate: now,
+      initialDate: initialDate,
+      firstDate: firstDate,
+      lastDate: lastDate,
+      builder: (BuildContext context, Widget? child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            primaryColor: Colors.blue,
+            hintColor: Colors.blue,
+            buttonTheme:
+                const ButtonThemeData(textTheme: ButtonTextTheme.primary),
+            dialogBackgroundColor: Colors.blue[700],
+            textTheme: const TextTheme(
+              bodyMedium: TextStyle(color: Colors.white),
+            ),
+          ),
+          child: child ?? const SizedBox(),
+        );
+      },
     );
 
     if (pickedDate != null) {
-      if (pickedDate.year < 2000 || pickedDate.year > 2014) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Please select a date between 2000 and 2014.'),
-            duration: Duration(seconds: 2),
-          ),
-        );
-      } else {
-        String formattedDate = DateFormat('MM/dd/yyyy').format(pickedDate);
-        setState(() {
-          _birthdayController.text = formattedDate;
-        });
-      }
+      String formattedDate = DateFormat('MM/dd/yyyy').format(pickedDate);
+      setState(() {
+        _birthdayController.text = formattedDate;
+      });
     }
   }
 
@@ -127,7 +137,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
   }
 
   Future<void> _confirmSignUp() async {
-    // Check for empty fields
     if (_fullNameController.text.isEmpty ||
         _strandController.text.isEmpty ||
         _birthdayController.text.isEmpty ||
@@ -142,7 +151,6 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     }
 
     try {
-      // Create user with email and password
       UserCredential userCredential =
           await FirebaseAuth.instance.createUserWithEmailAndPassword(
         email: widget.emailController.text,
@@ -151,37 +159,20 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
       String uid = userCredential.user!.uid;
 
-      // Initialize user data in Firestore
       await FirebaseFirestore.instance.collection('users').doc(uid).set({
-        'fullName': _fullNameController.text, // Save full name
-        'username': widget.usernameController.text, // Save username
-        'strand': _strandController.text, // Save strand
-        'birthday': _birthdayController.text, // Save birthday
-        'address': _addressController.text, // Save address
+        'fullName': _fullNameController.text,
+        'username': widget.usernameController.text,
+        'strand': _strandController.text,
+        'birthday': _birthdayController.text,
+        'address': _addressController.text,
         'email': widget.emailController.text,
-        'downloadedModules': [], // Start with empty
-        'completedModules': [], // Start with empty
+        'downloadedModules': [],
+        'completedModules': [],
         'xp': 0,
       });
 
-      // Fetch default user data
-      DocumentSnapshot defaultUserDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc('User ID') // Replace with your actual default user ID
-          .get();
+      await _initializeModuleProgress(uid);
 
-      Map<String, dynamic>? defaultData =
-          defaultUserDoc.data() as Map<String, dynamic>?;
-
-      if (defaultData != null) {
-        // Only copy the default module progress
-        await _initializeModuleProgress(uid, 'Reading Comprehension');
-        await _initializeModuleProgress(uid, 'Word Pronunciation');
-        await _initializeModuleProgress(uid, 'Sentence Composition');
-        await _initializeModuleProgress(uid, 'Vocabulary Skills');
-      }
-
-      // Navigate to Home Menu
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
           builder: (context) => const HomeMenu(),
@@ -195,30 +186,57 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     }
   }
 
-  Future<void> _initializeModuleProgress(String uid, String moduleName) async {
-    var moduleData = await FirebaseFirestore.instance
-        .collection('users')
-        .doc('User ID') // Default user
-        .collection('progress')
-        .doc(moduleName)
-        .get();
+  Future<void> _initializeModuleProgress(String uid) async {
+    // Define the modules and their corresponding difficulties
+    const moduleDifficulties = {
+      'Reading Comprehension': ['Easy', 'Medium', 'Hard'],
+      'Sentence Composition': ['Easy', 'Medium', 'Hard'],
+      'Vocabulary Skills': ['Easy', 'Medium', 'Hard'],
+      'Word Pronunciation': ['Easy', 'Medium', 'Hard'],
+    };
 
-    if (moduleData.exists) {
-      await FirebaseFirestore.instance
-          .collection('users')
-          .doc(uid)
-          .collection('progress')
-          .doc(moduleName)
-          .set(moduleData.data()!);
+    for (var moduleName in moduleDifficulties.keys) {
+      try {
+        // Create the module progress document for the user
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(uid)
+            .collection('progress')
+            .doc(moduleName)
+            .set({
+          'status': 'NOT STARTED',
+        });
+
+        // Get the difficulties for the current module
+        var difficulties = moduleDifficulties[moduleName]!;
+
+        for (String difficultyName in difficulties) {
+          // Create a unique ID based on the user ID and difficulty name
+          String uniqueId =
+              '$uid-$moduleName-$difficultyName'; // e.g., userId-Reading Comprehension-Easy
+
+          await FirebaseFirestore.instance
+              .collection('users')
+              .doc(uid)
+              .collection('progress')
+              .doc(moduleName)
+              .collection('difficulty')
+              .doc(uniqueId) // Use the dynamically created unique ID
+              .set({
+            'status': 'NOT STARTED',
+          });
+        }
+      } catch (e) {
+        print('Error initializing module progress for $moduleName: $e');
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    double width = MediaQuery.of(context).size.width;
-    double height = MediaQuery.of(context).size.height;
     return Scaffold(
       resizeToAvoidBottomInset: true,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         backgroundColor: Colors.blue[900],
         elevation: 0,
@@ -230,6 +248,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         ),
       ),
       body: Container(
+        height: MediaQuery.of(context).size.height,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [Colors.blue[900]!, Colors.blue[700]!],
@@ -238,215 +257,223 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
           ),
         ),
         padding: EdgeInsets.symmetric(
-            horizontal: width * 0.05, vertical: height * 0.02),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            const SizedBox(height: 10),
-            Text(
-              "Personify Yourself!",
-              style: GoogleFonts.montserrat(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 10),
-            Text(
-              'Add in your personal details here',
-              style: GoogleFonts.montserrat(
-                color: Colors.white,
-                fontSize: 16,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 30),
-
-            // Full Name Field
-            TextFormField(
-              controller: _fullNameController,
-              maxLength: 50,
-              decoration: InputDecoration(
-                labelText: 'Full Name',
-                labelStyle: const TextStyle(color: Colors.white),
-                filled: true,
-                fillColor: Colors.blue[800]?.withOpacity(0.3),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue[800]!),
-                ),
-                hintText: 'Enter Full Name here...',
-                hintStyle: const TextStyle(color: Colors.white54),
-                prefixIcon: const Icon(Icons.person, color: Colors.white),
-              ),
-              style: GoogleFonts.montserrat(color: Colors.white),
-              inputFormatters: [
-                FilteringTextInputFormatter.deny(RegExp(r'\d')),
-              ],
-              buildCounter: (context,
-                  {required currentLength, maxLength, required isFocused}) {
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
-
-            // Strand ComboBox with Icon
-            InputDecorator(
-              decoration: InputDecoration(
-                labelText: 'Strand',
-                labelStyle: const TextStyle(color: Colors.white),
-                filled: true,
-                fillColor: Colors.blue[800]?.withOpacity(0.3),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue[800]!),
-                ),
-              ),
-              child: DropdownButtonHideUnderline(
-                child: DropdownButton<String>(
-                  value: _strandController.text.isEmpty
-                      ? null
-                      : _strandController.text,
-                  icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
-                  isExpanded: true,
-                  items: strands.map((String strand) {
-                    return DropdownMenuItem<String>(
-                      value: strand,
-                      child: Row(
-                        children: [
-                          const Icon(Icons.school, color: Colors.white),
-                          const SizedBox(width: 10),
-                          Text(strand,
-                              style: const TextStyle(color: Colors.white)),
-                        ],
-                      ),
-                    );
-                  }).toList(),
-                  onChanged: (String? newValue) {
-                    setState(() {
-                      _strandController.text = newValue!;
-                    });
-                  },
-                  dropdownColor: Colors.blue[800]?.withOpacity(0.9),
-                  style: GoogleFonts.montserrat(color: Colors.white),
-                  hint: const Text('Select Strand',
-                      style: TextStyle(color: Colors.white54)),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Birthday Field
-            GestureDetector(
-              onTap: () => _selectBirthday(context),
-              child: AbsorbPointer(
-                child: TextFormField(
-                  controller: _birthdayController,
-                  decoration: InputDecoration(
-                    labelText: 'Birthday (MM/DD/YYYY)',
-                    labelStyle: const TextStyle(color: Colors.white),
-                    filled: true,
-                    fillColor: Colors.blue[800]?.withOpacity(0.3),
-                    border: OutlineInputBorder(
-                      borderSide: BorderSide(color: Colors.blue[800]!),
-                    ),
-                    hintText: 'MM/DD/YYYY...',
-                    hintStyle: const TextStyle(color: Colors.white54),
-                    prefixIcon:
-                        const Icon(Icons.calendar_today, color: Colors.white),
-                  ),
-                  style: GoogleFonts.montserrat(color: Colors.white),
-                  readOnly: true,
-                  buildCounter: (context,
-                      {required currentLength, maxLength, required isFocused}) {
-                    return null;
-                  },
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // Address Field
-            TextFormField(
-              controller: _addressController,
-              maxLength: 100,
-              decoration: InputDecoration(
-                labelText: 'Address',
-                labelStyle: const TextStyle(color: Colors.white),
-                filled: true,
-                fillColor: Colors.blue[800]?.withOpacity(0.3),
-                border: OutlineInputBorder(
-                  borderSide: BorderSide(color: Colors.blue[800]!),
-                ),
-                hintText: 'Barangay, City...',
-                hintStyle: const TextStyle(color: Colors.white54),
-                prefixIcon: const Icon(Icons.location_on, color: Colors.white),
-              ),
-              style: GoogleFonts.montserrat(color: Colors.white),
-              buildCounter: (context,
-                  {required currentLength, maxLength, required isFocused}) {
-                return null;
-              },
-            ),
-            const SizedBox(height: 20),
-
-            // Sign Up Button
-            ElevatedButton(
-              onPressed: _showConfirmationDialog,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue[600],
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
-                minimumSize: const Size(double.infinity, 50),
-              ),
-              child: Text(
-                'Sign Up',
+          horizontal: MediaQuery.of(context).size.width * 0.05,
+          vertical: MediaQuery.of(context).size.height * 0.02,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              Text(
+                "Personify Yourself!",
                 style: GoogleFonts.montserrat(
                   color: Colors.white,
+                  fontSize: MediaQuery.of(context).size.width > 600 ? 28 : 24,
                   fontWeight: FontWeight.bold,
                 ),
+                textAlign: TextAlign.center,
               ),
-            ),
-
-            const SizedBox(height: 20),
-
-            // Terms and Conditions
-            RichText(
-              text: TextSpan(
+              const SizedBox(height: 10),
+              Text(
+                'Add in your personal details here',
                 style: GoogleFonts.montserrat(
                   color: Colors.white,
-                  fontSize: 12,
+                  fontSize: MediaQuery.of(context).size.width > 600 ? 18 : 16,
                 ),
-                children: [
-                  const TextSpan(text: 'By signing up, you agree to\n'),
-                  TextSpan(
-                    text: 'I-READ\'s Terms of Service and Privacy Policy.',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      decoration: TextDecoration.underline,
-                    ),
-                    recognizer: TapGestureRecognizer()
-                      ..onTap = () {
-                        // Define action for tapping the terms link
-                      },
-                  ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 30),
+
+              // Full Name Field
+              _buildTextField(
+                controller: _fullNameController,
+                label: 'Full Name',
+                hint: 'Enter Full Name here...',
+                icon: Icons.person,
+                inputFormatters: [
+                  FilteringTextInputFormatter.deny(RegExp(r'\d')),
                 ],
               ),
-              textAlign: TextAlign.center,
-            ),
+              const SizedBox(height: 20),
 
-            const SizedBox(height: 20),
-
-            // Full Progress Bar
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20.0),
-              child: LinearProgressIndicator(
-                value: 1.0, // Full progress for the last page
-                backgroundColor: Colors.grey[400],
-                color: Colors.blue,
+              // Strand ComboBox with Icon
+              _buildDropdownField(
+                controller: _strandController,
+                label: 'Strand',
+                items: strands,
               ),
-            ),
-          ],
+              const SizedBox(height: 20),
+
+              // Birthday Field
+              GestureDetector(
+                onTap: () => _selectBirthday(context),
+                child: AbsorbPointer(
+                  child: _buildTextField(
+                    controller: _birthdayController,
+                    label: 'Birthday (MM/DD/YYYY)',
+                    hint: 'MM/DD/YYYY...',
+                    icon: Icons.calendar_today,
+                    readOnly: true,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Address Field
+              _buildTextField(
+                controller: _addressController,
+                label: 'Address',
+                hint: 'Barangay, City...',
+                icon: Icons.location_on,
+              ),
+              const SizedBox(height: 20),
+
+              // Sign Up Button
+              ElevatedButton(
+                onPressed: _showConfirmationDialog,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blue[600],
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 40, vertical: 20),
+                  minimumSize: const Size(double.infinity, 50),
+                ),
+                child: Text(
+                  'Sign Up',
+                  style: GoogleFonts.montserrat(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 20),
+
+              // Terms and Conditions
+              RichText(
+                text: TextSpan(
+                  style: GoogleFonts.montserrat(
+                    color: Colors.white,
+                    fontSize: 12,
+                  ),
+                  children: [
+                    const TextSpan(text: 'By signing up, you agree to\n'),
+                    TextSpan(
+                      text: 'I-READ\'s Terms of Service and Privacy Policy.',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        decoration: TextDecoration.underline,
+                      ),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () {
+                          // Define action for tapping the terms link
+                        },
+                    ),
+                  ],
+                ),
+                textAlign: TextAlign.center,
+              ),
+
+              const SizedBox(height: 20),
+
+              // Full Progress Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 20.0),
+                child: LinearProgressIndicator(
+                  value: 1.0,
+                  backgroundColor: Colors.grey[400],
+                  color: Colors.blue,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildTextField({
+    required TextEditingController controller,
+    required String label,
+    required String hint,
+    required IconData icon,
+    bool readOnly = false,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
+    return TextFormField(
+      controller: controller,
+      readOnly: readOnly,
+      maxLength: 50,
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white),
+        filled: true,
+        fillColor: Colors.blue[800]?.withOpacity(0.3),
+        border: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.blue[800]!),
+        ),
+        hintText: hint,
+        hintStyle: const TextStyle(color: Colors.white54),
+        prefixIcon: Icon(icon, color: Colors.white),
+      ),
+      style: GoogleFonts.montserrat(color: Colors.white),
+      inputFormatters: inputFormatters,
+      buildCounter: (context,
+          {required currentLength, maxLength, required isFocused}) {
+        return null; // Hides the character limit
+      },
+    );
+  }
+
+  Widget _buildDropdownField({
+    required TextEditingController controller,
+    required String label,
+    required List<String> items,
+  }) {
+    return InputDecorator(
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: const TextStyle(color: Colors.white),
+        filled: true,
+        fillColor: Colors.blue[800]?.withOpacity(0.3),
+        border: OutlineInputBorder(
+          borderSide: BorderSide(color: Colors.blue[800]!),
+        ),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<String>(
+          value: controller.text.isEmpty ? null : controller.text,
+          icon: const Icon(Icons.arrow_drop_down, color: Colors.white),
+          isExpanded: true,
+          items: items.map((String strand) {
+            return DropdownMenuItem<String>(
+              value: strand,
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: Row(
+                  children: [
+                    const Icon(Icons.school, color: Colors.white),
+                    const SizedBox(width: 10),
+                    Text(
+                      strand,
+                      style: const TextStyle(color: Colors.white),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+            );
+          }).toList(),
+          onChanged: (String? newValue) {
+            setState(() {
+              controller.text = newValue!;
+            });
+          },
+          dropdownColor: Colors.blue[800]?.withOpacity(0.9),
+          style: GoogleFonts.montserrat(color: Colors.white),
+          hint: const Text('Select Strand',
+              style: TextStyle(color: Colors.white54)),
         ),
       ),
     );

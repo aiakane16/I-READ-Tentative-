@@ -19,19 +19,15 @@ class ModulesMenu extends StatefulWidget {
 class _ModulesMenuState extends State<ModulesMenu> {
   List<String> modules = [];
   List<String> moduleStatuses = [];
-  List<int> moduleCompleted = []; // Track completed quizzes for each module
-  List<int> moduleTotal = []; // Track total quizzes for each module
+  List<int> moduleCompleted = [];
+  List<int> moduleTotal = [];
+  Map<String, int> completedDifficultiesCountMap = {};
   bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-  }
-
-  @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    _loadModules(); // Load modules when dependencies change
+    _loadModules();
   }
 
   Future<void> _loadModules() async {
@@ -40,21 +36,21 @@ class _ModulesMenuState extends State<ModulesMenu> {
           await FirebaseFirestore.instance.collection('fields').get();
       List<String> fetchedModules = [];
 
-      // Add "Reading Comprehension" as a module
-      fetchedModules.add('Reading Comprehension');
-
       for (var fieldDoc in fieldDocs.docs) {
         var modulesData = fieldDoc.data()['modules'] as List<dynamic>? ?? [];
         fetchedModules
             .addAll(modulesData.map((module) => module['title'] as String));
       }
 
-      await _fetchModuleStatuses(fetchedModules);
+      if (!fetchedModules.contains('Reading Comprehension')) {
+        fetchedModules.add('Reading Comprehension');
+      }
 
-      // Initialize completed and total counts
+      await _fetchModuleStatuses(fetchedModules);
+      await _fetchDifficultyCompletion();
+
       moduleCompleted = List.filled(fetchedModules.length, 0);
-      moduleTotal = List.filled(
-          fetchedModules.length, 3); // Assume 3 for Reading Comprehension
+      moduleTotal = List.filled(fetchedModules.length, 3);
 
       setState(() {
         modules = fetchedModules;
@@ -81,11 +77,37 @@ class _ModulesMenuState extends State<ModulesMenu> {
         var data = moduleDoc.data() as Map<String, dynamic>;
         statuses.add(data['status'] ?? 'NOT FINISHED');
       } else {
-        statuses.add('NOT FINISHED'); // Default status if not found
+        statuses.add('NOT FINISHED');
       }
     }
 
-    moduleStatuses = statuses; // Store the fetched statuses
+    moduleStatuses = statuses;
+  }
+
+  Future<void> _fetchDifficultyCompletion() async {
+    String userId = FirebaseAuth.instance.currentUser!.uid;
+    String moduleTitle = 'Reading Comprehension';
+    List<String> difficultyLevels = ['Easy', 'Medium', 'Hard'];
+
+    for (String difficulty in difficultyLevels) {
+      String uniqueId = '$userId-$moduleTitle-$difficulty';
+      var difficultyDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('progress')
+          .doc(moduleTitle)
+          .collection('difficulty')
+          .doc(uniqueId)
+          .get();
+
+      if (difficultyDoc.exists) {
+        String status = difficultyDoc.data()?['status'] ?? 'NOT STARTED';
+        if (status == 'COMPLETED') {
+          completedDifficultiesCountMap[moduleTitle] =
+              (completedDifficultiesCountMap[moduleTitle] ?? 0) + 1;
+        }
+      }
+    }
   }
 
   void _showErrorDialog(String message) {
@@ -112,6 +134,7 @@ class _ModulesMenuState extends State<ModulesMenu> {
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -122,90 +145,99 @@ class _ModulesMenuState extends State<ModulesMenu> {
           ),
         ),
         padding: EdgeInsets.symmetric(
-            horizontal: width * 0.05, vertical: height * 0.02),
+            horizontal: width * 0.05,
+            vertical: height * 0.01), // Reduced vertical padding
         child: isLoading
             ? const Center(child: CircularProgressIndicator())
             : Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Modules',
-                    style: GoogleFonts.montserrat(
-                        fontSize: 24, color: Colors.white),
+                  const SizedBox(
+                      height: 20), // Reduced height for the "Modules" text
+                  Padding(
+                    padding: const EdgeInsets.only(top: 10.0),
+                    child: Text(
+                      'Modules',
+                      style: GoogleFonts.montserrat(
+                          fontSize: width * 0.06, color: Colors.white),
+                    ),
                   ),
                   const SizedBox(height: 20),
                   Expanded(
                     child: ListView.builder(
                       itemCount: modules.length,
                       itemBuilder: (context, index) {
+                        String currentModule = modules[index];
+                        int completedCount =
+                            completedDifficultiesCountMap[currentModule] ?? 0;
+
                         return Card(
                           margin: const EdgeInsets.symmetric(vertical: 10),
                           child: ListTile(
                             title: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                // Make module title larger
                                 Text(
-                                  modules[index],
+                                  currentModule,
                                   style: GoogleFonts.montserrat(
                                       fontWeight: FontWeight.bold,
-                                      fontSize: 18, // Increased size for title
+                                      fontSize: 18,
                                       color: Colors.blue),
                                 ),
                                 const SizedBox(height: 5),
-                                // Smaller text for status, difficulty, and reward
                                 Text(
                                   'Status: ${moduleStatuses[index]}',
                                   style: GoogleFonts.montserrat(
-                                      fontSize: 14, // Decreased size
-                                      color: Colors.black),
+                                      fontSize: 14, color: Colors.black),
                                 ),
                                 Text(
                                   'Difficulty: EASY',
                                   style: GoogleFonts.montserrat(
-                                      fontSize: 14, // Decreased size
-                                      color: Colors.black),
+                                      fontSize: 14, color: Colors.black),
                                 ),
                                 Text(
                                   'Reward: 500 XP',
                                   style: GoogleFonts.montserrat(
-                                      fontSize: 14, // Decreased size
-                                      color: Colors.lightBlue),
+                                      fontSize: 14, color: Colors.lightBlue),
                                 ),
                                 const SizedBox(height: 5),
-                                // Progress bar
-                                LinearProgressIndicator(
-                                  value: moduleCompleted[index] /
-                                      moduleTotal[index],
-                                  backgroundColor: Colors.grey[300],
-                                  color: Colors.green,
-                                ),
+                                if (currentModule == 'Reading Comprehension')
+                                  LinearProgressIndicator(
+                                    value: completedCount / 3.0,
+                                    backgroundColor: Colors.grey[300],
+                                    color: Colors.green,
+                                  )
+                                else
+                                  LinearProgressIndicator(
+                                    value: 0.0,
+                                    backgroundColor: Colors.grey[300],
+                                    color: Colors.red,
+                                  ),
                                 const SizedBox(height: 5),
                                 Text(
-                                  '${moduleCompleted[index]} / ${moduleTotal[index]} completed',
+                                  '$completedCount / 3 completed',
                                   style: GoogleFonts.montserrat(),
                                 ),
                               ],
                             ),
                             onTap: () {
-                              // Navigate to specific module
-                              if (modules[index] == 'Reading Comprehension') {
+                              if (currentModule == 'Reading Comprehension') {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                       builder: (context) =>
                                           const ReadingComprehensionLevels()),
                                 );
-                              } else if (modules[index] ==
+                              } else if (currentModule ==
                                   'Word Pronunciation') {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => WordProQuiz(
-                                        moduleTitle: modules[index]),
+                                    builder: (context) =>
+                                        WordProQuiz(moduleTitle: currentModule),
                                   ),
                                 );
-                              } else if (modules[index] ==
+                              } else if (currentModule ==
                                   'Sentence Composition') {
                                 Navigator.push(
                                   context,
@@ -213,13 +245,12 @@ class _ModulesMenuState extends State<ModulesMenu> {
                                     builder: (context) => const SentCompQuiz(),
                                   ),
                                 );
-                              } else if (modules[index] ==
-                                  'Vocabulary Skills') {
+                              } else if (currentModule == 'Vocabulary Skills') {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) => VocabSkillsQuiz(
-                                        moduleTitle: modules[index]),
+                                        moduleTitle: currentModule),
                                   ),
                                 );
                               }
@@ -256,8 +287,7 @@ class _ModulesMenuState extends State<ModulesMenu> {
             Navigator.pushNamed(context, '/home');
             break;
           case 2:
-            Navigator.pushNamed(
-                context, '/dictionary_menu'); // Adjust as needed
+            Navigator.pushNamed(context, '/dictionary_menu');
             break;
           case 3:
             Navigator.pushNamed(context, '/profile_menu');

@@ -51,6 +51,7 @@ class _ProfileMenuState extends State<ProfileMenu> {
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
+
     return Scaffold(
       body: Container(
         decoration: BoxDecoration(
@@ -65,7 +66,9 @@ class _ProfileMenuState extends State<ProfileMenu> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const Center(
+            const SizedBox(
+                height: 30), // Adjusted height for the profile picture
+            Center(
               child: CircleAvatar(
                 radius: 60,
                 backgroundImage:
