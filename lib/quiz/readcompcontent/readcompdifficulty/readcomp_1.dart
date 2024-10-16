@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../../mainmenu/modules_menu.dart';
+import '../../../mainmenu/modules_menu.dart';
 
 class Question {
   final String questionText;
@@ -49,9 +49,6 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
   int _remainingTime = 300; // 5 minutes for each question
   bool isCalculatingResults = false;
 
-  final String difficultyId =
-      'bwR5cpbDO1WEWg0q1lbCjbUcKAk1-Reading Comprehension-Easy'; // Replace with your actual ID
-
   @override
   void initState() {
     super.initState();
@@ -67,7 +64,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
   Future<void> _loadQuestions() async {
     try {
       if (widget.uniqueIds.isNotEmpty) {
-        String uniqueId = widget.uniqueIds[0];
+        String uniqueId = widget.uniqueIds[0]; // Use the first unique ID
 
         final querySnapshot = await FirebaseFirestore.instance
             .collection('fields')
@@ -188,7 +185,8 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
         .collection('progress')
         .doc(widget.moduleTitle)
         .collection('difficulty')
-        .doc(difficultyId) // Use the hardcoded difficulty ID
+        .doc(
+            '$userId-Reading Comprehension-${widget.difficulty}') // Use the dynamically created unique ID
         .set({
       'status': 'COMPLETED',
     }, SetOptions(merge: true));
@@ -255,13 +253,27 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
             const SizedBox(width: 10),
           ],
         ),
-        body: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : questions.isEmpty
-                ? const Center(child: Text('No questions available.'))
-                : isCalculatingResults
-                    ? const Center(child: CircularProgressIndicator())
-                    : _buildQuizContent(),
+        body: Container(
+          width: double.infinity,
+          height: double.infinity, // Fill the entire screen
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Color(0xFF003366), Color(0xFF0052CC)],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : questions.isEmpty
+                  ? const Center(child: Text('No questions available.'))
+                  : isCalculatingResults
+                      ? const Center(child: CircularProgressIndicator())
+                      : SingleChildScrollView(
+                          // Make the content scrollable
+                          child: _buildQuizContent(),
+                        ),
+        ),
       ),
     );
   }
@@ -286,96 +298,84 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
       }
     }
 
-    return Container(
-      height: MediaQuery.of(context).size.height,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          colors: [Color(0xFF003366), Color(0xFF0052CC)],
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              shortStory,
-              style: GoogleFonts.montserrat(fontSize: 18, color: Colors.white),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            Text(
-              question,
-              style: GoogleFonts.montserrat(fontSize: 18, color: Colors.white),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-            Column(
-              children: options.map<Widget>((option) {
-                int optionIndex = options.indexOf(option);
-                bool isSelected = optionIndex == selectedAnswerIndex;
-                bool isCorrectOption =
-                    questions[currentQuestionIndex].correctAnswer == option;
+    return Padding(
+      padding: const EdgeInsets.all(20.0), // Padding around the content
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            shortStory,
+            style: GoogleFonts.montserrat(fontSize: 18, color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          Text(
+            question,
+            style: GoogleFonts.montserrat(fontSize: 18, color: Colors.white),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 20),
+          Column(
+            children: options.map<Widget>((option) {
+              int optionIndex = options.indexOf(option);
+              bool isSelected = optionIndex == selectedAnswerIndex;
+              bool isCorrectOption =
+                  questions[currentQuestionIndex].correctAnswer == option;
 
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 10.0),
-                  child: ElevatedButton(
-                    onPressed: isAnswerSubmitted
-                        ? null
-                        : () {
-                            setState(() {
-                              selectedAnswerIndex = optionIndex;
-                            });
-                          },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: isAnswerSubmitted
-                          ? (isCorrectOption
-                              ? Colors.green
-                              : (isSelected
-                                  ? Colors.orange[800]
-                                  : Colors.blueAccent))
-                          : (isSelected
-                              ? Colors.orange[800]
-                              : Colors.blueAccent),
-                      minimumSize: const Size(double.infinity, 50),
-                    ),
-                    child: Text(
-                      option,
-                      style: GoogleFonts.montserrat(
-                          color: Colors.white, fontSize: 16),
-                    ),
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 10.0),
+                child: ElevatedButton(
+                  onPressed: isAnswerSubmitted
+                      ? null
+                      : () {
+                          setState(() {
+                            selectedAnswerIndex = optionIndex;
+                          });
+                        },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isAnswerSubmitted
+                        ? (isCorrectOption
+                            ? Colors.green
+                            : (isSelected
+                                ? Colors.orange[800]
+                                : Colors.blueAccent))
+                        : (isSelected ? Colors.orange[800] : Colors.blueAccent),
+                    minimumSize: const Size(double.infinity, 50),
                   ),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 20),
-            if (isAnswerSubmitted) // Show feedback only after submission
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  feedbackIcon,
-                  const SizedBox(width: 8),
-                  Text(
-                    feedbackMessage,
-                    style: TextStyle(color: feedbackColor, fontSize: 16),
+                  child: Text(
+                    option,
+                    style: GoogleFonts.montserrat(
+                        color: Colors.white, fontSize: 16),
                   ),
-                ],
-              ),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: (isAnswerSubmitted) ? _nextQuestion : _submitAnswer,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-              ),
-              child: Text(
-                isAnswerSubmitted ? 'Next' : 'Submit',
-                style: GoogleFonts.montserrat(color: Colors.white),
-              ),
+                ),
+              );
+            }).toList(),
+          ),
+          const SizedBox(height: 20),
+          if (isAnswerSubmitted) // Show feedback only after submission
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                feedbackIcon,
+                const SizedBox(width: 8),
+                Text(
+                  feedbackMessage,
+                  style: TextStyle(color: feedbackColor, fontSize: 16),
+                ),
+              ],
             ),
-          ],
-        ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: (isAnswerSubmitted) ? _nextQuestion : _submitAnswer,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue,
+            ),
+            child: Text(
+              isAnswerSubmitted ? 'Next' : 'Submit',
+              style: GoogleFonts.montserrat(color: Colors.white),
+            ),
+          ),
+        ],
       ),
     );
   }

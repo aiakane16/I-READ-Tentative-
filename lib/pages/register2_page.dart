@@ -175,7 +175,8 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(
-          builder: (context) => const HomeMenu(),
+          builder: (context) =>
+              const HomeMenu(uniqueIds: []), // Pass uniqueIds here if needed
         ),
       );
     } catch (e) {

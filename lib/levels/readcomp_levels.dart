@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../indevelop.dart';
-import '../quiz/readcompcontent/readingcontent_easy.dart'; // Import your ReadingContentPage
+import '../quiz/readcompcontent/readingcontent_readcomp/readingcontent_easy.dart'; // Import your ReadingContentPage
 
 class ReadingComprehensionLevels extends StatefulWidget {
   const ReadingComprehensionLevels({super.key});
@@ -15,8 +15,8 @@ class ReadingComprehensionLevels extends StatefulWidget {
 
 class _ReadingComprehensionLevelsState
     extends State<ReadingComprehensionLevels> {
-  final String easyId =
-      'bwR5cpbDO1WEWg0q1lbCjbUcKAk1-Reading Comprehension-Easy';
+  String userId = '';
+  late String easyId;
   final String mediumId =
       'your_medium_unique_id'; // Replace with actual medium ID
   final String hardId = 'your_hard_unique_id'; // Replace with actual hard ID
@@ -28,11 +28,16 @@ class _ReadingComprehensionLevelsState
   @override
   void initState() {
     super.initState();
-    _checkCompletionStatus();
+    _getUserId().then((id) {
+      setState(() {
+        userId = id;
+        easyId = '$userId-Reading Comprehension-Easy'; // Generate easy ID
+      });
+      _checkCompletionStatus();
+    });
   }
 
   Future<void> _checkCompletionStatus() async {
-    String userId = await _getUserId();
     await _checkDifficultyStatus(userId, easyId).then((completed) {
       setState(() {
         isEasyCompleted = completed;

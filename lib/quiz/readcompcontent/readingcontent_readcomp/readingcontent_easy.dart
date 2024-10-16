@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:i_read_app/quiz/readcompdifficulty/readcomp_1.dart'; // Ensure this path is correct
+import 'package:i_read_app/quiz/readcompcontent/readcompdifficulty/readcomp_1.dart'; // Ensure this path is correct
 
 class ReadingContentPage extends StatelessWidget {
   final String level;

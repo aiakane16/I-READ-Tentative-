@@ -32,7 +32,8 @@ class MyApp extends StatelessWidget {
         '/': (context) => const SplashPage(),
         '/login': (context) => const LoginPage(),
         '/register': (context) => const RegisterPage(),
-        '/home': (context) => const HomeMenu(),
+        '/home': (context) =>
+            HomeMenu(uniqueIds: []), // Pass an empty list or actual unique IDs
         '/modules_menu': (context) => ModulesMenu(
               onModulesUpdated: (updatedModules) {},
             ),

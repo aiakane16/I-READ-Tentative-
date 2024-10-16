@@ -3,13 +3,16 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import '../levels/readingcomp_levels.dart';
+import '../levels/readcomp_levels.dart';
 import '../quiz/sentcomp_quiz.dart';
 import '../quiz/vocabskill_quiz.dart';
-import '../quiz/wordpro_quiz.dart';
+import '../quiz/wordprocontent/wordprodifficulty/wordpro_1.dart';
 
 class HomeMenu extends StatefulWidget {
-  const HomeMenu({super.key});
+  final List<String> uniqueIds; // Define uniqueIds here
+
+  const HomeMenu(
+      {super.key, required this.uniqueIds}); // Pass it in the constructor
 
   @override
   _HomeMenuState createState() => _HomeMenuState();
@@ -133,7 +136,11 @@ class _HomeMenuState extends State<HomeMenu> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => WordProQuiz(moduleTitle: moduleTitle),
+          builder: (context) => WordProQuiz(
+            moduleTitle: moduleTitle,
+            uniqueIds: widget.uniqueIds, // Pass unique IDs
+            difficulty: module['difficulty'], // Pass difficulty
+          ),
         ),
       );
     } else if (moduleTitle == 'Sentence Composition') {
@@ -184,7 +191,8 @@ class _HomeMenuState extends State<HomeMenu> {
                 ),
               ),
               padding: EdgeInsets.symmetric(
-                  horizontal: width * 0.05, vertical: height * 0.02),
+                  horizontal: width * 0.05,
+                  vertical: height * 0.05), // Increased vertical padding
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.start,
                 children: [

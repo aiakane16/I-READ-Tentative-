@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:i_read_app/levels/readingcomp_levels.dart';
+import '../levels/readcomp_levels.dart'; // Import for Reading Comprehension
+import '../levels/wordpro_levels.dart'; // Import for Word Pronunciation
 import '../quiz/sentcomp_quiz.dart';
 import '../quiz/vocabskill_quiz.dart';
-import '../quiz/wordpro_quiz.dart';
 
 class ModulesMenu extends StatefulWidget {
   final Function(List<String>) onModulesUpdated;
@@ -42,8 +42,12 @@ class _ModulesMenuState extends State<ModulesMenu> {
             .addAll(modulesData.map((module) => module['title'] as String));
       }
 
+      // Ensure both modules are included
       if (!fetchedModules.contains('Reading Comprehension')) {
         fetchedModules.add('Reading Comprehension');
+      }
+      if (!fetchedModules.contains('Word Pronunciation')) {
+        fetchedModules.add('Word Pronunciation');
       }
 
       await _fetchModuleStatuses(fetchedModules);
@@ -86,25 +90,27 @@ class _ModulesMenuState extends State<ModulesMenu> {
 
   Future<void> _fetchDifficultyCompletion() async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
-    String moduleTitle = 'Reading Comprehension';
+    List<String> moduleTitles = ['Reading Comprehension', 'Word Pronunciation'];
     List<String> difficultyLevels = ['Easy', 'Medium', 'Hard'];
 
-    for (String difficulty in difficultyLevels) {
-      String uniqueId = '$userId-$moduleTitle-$difficulty';
-      var difficultyDoc = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('progress')
-          .doc(moduleTitle)
-          .collection('difficulty')
-          .doc(uniqueId)
-          .get();
+    for (String moduleTitle in moduleTitles) {
+      for (String difficulty in difficultyLevels) {
+        String uniqueId = '$userId-$moduleTitle-$difficulty';
+        var difficultyDoc = await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('progress')
+            .doc(moduleTitle)
+            .collection('difficulty')
+            .doc(uniqueId)
+            .get();
 
-      if (difficultyDoc.exists) {
-        String status = difficultyDoc.data()?['status'] ?? 'NOT STARTED';
-        if (status == 'COMPLETED') {
-          completedDifficultiesCountMap[moduleTitle] =
-              (completedDifficultiesCountMap[moduleTitle] ?? 0) + 1;
+        if (difficultyDoc.exists) {
+          String status = difficultyDoc.data()?['status'] ?? 'NOT STARTED';
+          if (status == 'COMPLETED') {
+            completedDifficultiesCountMap[moduleTitle] =
+                (completedDifficultiesCountMap[moduleTitle] ?? 0) + 1;
+          }
         }
       }
     }
@@ -201,18 +207,11 @@ class _ModulesMenuState extends State<ModulesMenu> {
                                       fontSize: 14, color: Colors.lightBlue),
                                 ),
                                 const SizedBox(height: 5),
-                                if (currentModule == 'Reading Comprehension')
-                                  LinearProgressIndicator(
-                                    value: completedCount / 3.0,
-                                    backgroundColor: Colors.grey[300],
-                                    color: Colors.green,
-                                  )
-                                else
-                                  LinearProgressIndicator(
-                                    value: 0.0,
-                                    backgroundColor: Colors.grey[300],
-                                    color: Colors.red,
-                                  ),
+                                LinearProgressIndicator(
+                                  value: completedCount / 3.0,
+                                  backgroundColor: Colors.grey[300],
+                                  color: Colors.green,
+                                ),
                                 const SizedBox(height: 5),
                                 Text(
                                   '$completedCount / 3 completed',
@@ -234,7 +233,7 @@ class _ModulesMenuState extends State<ModulesMenu> {
                                   context,
                                   MaterialPageRoute(
                                     builder: (context) =>
-                                        WordProQuiz(moduleTitle: currentModule),
+                                        const WordPronunciationLevels(),
                                   ),
                                 );
                               } else if (currentModule ==
