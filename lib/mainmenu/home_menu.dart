@@ -3,9 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import '../help.dart';
 import '../levels/readcomp_levels.dart';
-import '../quiz/sentcomp_quiz.dart';
-import '../quiz/vocabskill_quiz.dart';
+import '../quiz/sentcompcontent/sentcomp_1.dart';
+import '../quiz/vocabskillcontent/vocabskill_1.dart';
 import '../quiz/wordprocontent/wordprodifficulty/wordpro_1.dart';
 
 class HomeMenu extends StatefulWidget {
@@ -73,10 +74,41 @@ class _HomeMenuState extends State<HomeMenu> {
         }
       }
 
+      // Ensure all modules are included
       if (!loadedModules
           .any((module) => module['title'] == 'Reading Comprehension')) {
         loadedModules.add({
           'title': 'Reading Comprehension',
+          'difficulty': 'EASY',
+          'reward': '500 XP',
+          'status': 'NOT FINISHED',
+        });
+      }
+
+      if (!loadedModules
+          .any((module) => module['title'] == 'Word Pronunciation')) {
+        loadedModules.add({
+          'title': 'Word Pronunciation',
+          'difficulty': 'EASY',
+          'reward': '500 XP',
+          'status': 'NOT FINISHED',
+        });
+      }
+
+      if (!loadedModules
+          .any((module) => module['title'] == 'Sentence Composition')) {
+        loadedModules.add({
+          'title': 'Sentence Composition',
+          'difficulty': 'EASY',
+          'reward': '500 XP',
+          'status': 'NOT FINISHED',
+        });
+      }
+
+      if (!loadedModules
+          .any((module) => module['title'] == 'Vocabulary Skills')) {
+        loadedModules.add({
+          'title': 'Vocabulary Skills',
           'difficulty': 'EASY',
           'reward': '500 XP',
           'status': 'NOT FINISHED',
@@ -147,14 +179,22 @@ class _HomeMenuState extends State<HomeMenu> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => SentCompQuiz(),
+          builder: (context) => SentCompQuiz(
+            moduleTitle: moduleTitle,
+            uniqueIds: widget.uniqueIds, // Pass unique IDs
+            difficulty: module['difficulty'],
+          ),
         ),
       );
     } else if (moduleTitle == 'Vocabulary Skills') {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => VocabSkillsQuiz(moduleTitle: moduleTitle),
+          builder: (context) => VocabSkillsQuiz(
+            moduleTitle: moduleTitle,
+            difficulty: module['difficulty'],
+            uniqueIds: widget.uniqueIds,
+          ),
         ),
       );
     } else {
@@ -209,15 +249,21 @@ class _HomeMenuState extends State<HomeMenu> {
                           ),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.all(12.0),
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.blue[800], // Changed to dark blue
-                        ),
-                        child: const Icon(
-                          Icons.help,
-                          color: Colors.white,
+                      MouseRegion(
+                        cursor: SystemMouseCursors.click,
+                        child: GestureDetector(
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) => HelpPage()),
+                            );
+                          },
+                          child: const Icon(
+                            Icons.help,
+                            color: Colors.white,
+                            size: 30,
+                          ),
                         ),
                       ),
                     ],

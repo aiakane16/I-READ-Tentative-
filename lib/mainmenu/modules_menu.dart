@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:i_read_app/levels/sentcomp_levels.dart';
+import 'package:i_read_app/levels/vocabskills_levels.dart';
 import '../levels/readcomp_levels.dart'; // Import for Reading Comprehension
 import '../levels/wordpro_levels.dart'; // Import for Word Pronunciation
-import '../quiz/sentcomp_quiz.dart';
-import '../quiz/vocabskill_quiz.dart';
+// Import for Vocabulary Skills
 
 class ModulesMenu extends StatefulWidget {
   final Function(List<String>) onModulesUpdated;
@@ -42,12 +43,18 @@ class _ModulesMenuState extends State<ModulesMenu> {
             .addAll(modulesData.map((module) => module['title'] as String));
       }
 
-      // Ensure both modules are included
+      // Ensure all modules are included
       if (!fetchedModules.contains('Reading Comprehension')) {
         fetchedModules.add('Reading Comprehension');
       }
       if (!fetchedModules.contains('Word Pronunciation')) {
         fetchedModules.add('Word Pronunciation');
+      }
+      if (!fetchedModules.contains('Vocabulary Skills')) {
+        fetchedModules.add('Vocabulary Skills');
+      }
+      if (!fetchedModules.contains('Sentence Composition')) {
+        fetchedModules.add('Sentence Composition');
       }
 
       await _fetchModuleStatuses(fetchedModules);
@@ -90,7 +97,12 @@ class _ModulesMenuState extends State<ModulesMenu> {
 
   Future<void> _fetchDifficultyCompletion() async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
-    List<String> moduleTitles = ['Reading Comprehension', 'Word Pronunciation'];
+    List<String> moduleTitles = [
+      'Reading Comprehension',
+      'Word Pronunciation',
+      'Vocabulary Skills',
+      'Sentence Composition',
+    ];
     List<String> difficultyLevels = ['Easy', 'Medium', 'Hard'];
 
     for (String moduleTitle in moduleTitles) {
@@ -241,15 +253,16 @@ class _ModulesMenuState extends State<ModulesMenu> {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => const SentCompQuiz(),
+                                    builder: (context) =>
+                                        const SentenceCompositionLevels(),
                                   ),
                                 );
                               } else if (currentModule == 'Vocabulary Skills') {
                                 Navigator.push(
                                   context,
                                   MaterialPageRoute(
-                                    builder: (context) => VocabSkillsQuiz(
-                                        moduleTitle: currentModule),
+                                    builder: (context) =>
+                                        VocabularySkillsLevels(),
                                   ),
                                 );
                               }

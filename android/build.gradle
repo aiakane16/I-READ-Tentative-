@@ -1,7 +1,15 @@
-plugins {
-  id 'com.google.gms.google-services' version '4.4.2' apply false
+buildscript {
+    ext.kotlin_version = '1.9.22' // Ensure this is the latest
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath "com.android.tools.build:gradle:8.0.0" // Update to a compatible version
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        classpath 'com.google.gms:google-services:4.4.2' // Ensure this is included
+    }
 }
-
 
 allprojects {
     repositories {

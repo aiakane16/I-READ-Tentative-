@@ -96,7 +96,6 @@ class _WordProQuizState extends State<WordProQuiz> {
     }
   }
 
-  // Update the _startRecording function
   Future<void> _startRecording() async {
     final hasPermission = await speech.initialize();
     if (hasPermission) {
@@ -134,7 +133,6 @@ class _WordProQuizState extends State<WordProQuiz> {
     }
   }
 
-// Update the _stopRecording function
   Future<void> _stopRecording() async {
     await speech.stop(); // Stop listening
 
@@ -220,9 +218,11 @@ class _WordProQuizState extends State<WordProQuiz> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Quiz Complete'),
+          title: const Text('Quiz Complete',
+              style: TextStyle(color: Colors.white)),
           content: const Text(
-              'You have completed all questions. Do you want to finish the quiz?'),
+              'You have completed all questions. Do you want to finish the quiz?',
+              style: TextStyle(color: Colors.white)),
           actions: [
             TextButton(
               onPressed: () async {
@@ -239,15 +239,18 @@ class _WordProQuizState extends State<WordProQuiz> {
                   (route) => false,
                 );
               },
-              child: const Text('Finish'),
+              child:
+                  const Text('Finish', style: TextStyle(color: Colors.white)),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(dialogContext).pop(); // Close dialog
               },
-              child: const Text('Cancel'),
+              child:
+                  const Text('Cancel', style: TextStyle(color: Colors.white)),
             ),
           ],
+          backgroundColor: Colors.blue[900],
         );
       },
     );

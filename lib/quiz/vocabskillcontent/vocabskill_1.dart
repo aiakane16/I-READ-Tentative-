@@ -6,7 +6,11 @@ import 'package:firebase_auth/firebase_auth.dart';
 class VocabSkillsQuiz extends StatefulWidget {
   final String moduleTitle;
 
-  const VocabSkillsQuiz({super.key, required this.moduleTitle});
+  const VocabSkillsQuiz(
+      {super.key,
+      required this.moduleTitle,
+      required List<String> uniqueIds,
+      required String difficulty});
 
   @override
   _VocabSkillsQuizState createState() => _VocabSkillsQuizState();
@@ -33,7 +37,9 @@ class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
     try {
       final snapshot = await FirebaseFirestore.instance
           .collection('fields')
-          .doc('Vocabulary Skills')
+          .doc('Vocabulary Skills') // Update this as needed
+          .collection('Easy') // Adjust this as needed
+          .doc('sOOI4k8t4pzArVZkKG3f') // Replace with your unique ID
           .get();
 
       if (snapshot.exists) {
@@ -111,13 +117,21 @@ class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
 
   Future<void> _showResults() async {
     String userId = FirebaseAuth.instance.currentUser!.uid;
+    String moduleTitle = widget.moduleTitle;
+    String difficulty = 'Easy'; // Adjust as necessary
 
-    // Update user's progress in the users collection
+    // Define the unique document ID for the specific difficulty
+    String difficultyDocId =
+        '$userId-$moduleTitle-$difficulty'; // Updated unique ID format
+
+    // Update user's progress for the specific difficulty
     await FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
         .collection('progress')
-        .doc(widget.moduleTitle)
+        .doc(moduleTitle)
+        .collection('difficulty')
+        .doc(difficultyDocId)
         .set({
       'status': 'COMPLETED', // Set status to uppercase
       'mistakes': mistakes,
@@ -126,28 +140,38 @@ class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
 
     // Update user XP in the users collection
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'xp': FieldValue.increment(500), // Increment XP in the correct place
+      'xp': FieldValue.increment(500), // Increment XP
     });
 
     // Add module to completedModules
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'completedModules': FieldValue.arrayUnion([widget.moduleTitle]),
+      'completedModules': FieldValue.arrayUnion([moduleTitle]),
     });
 
+    // Show completion dialog
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('${widget.moduleTitle} Quiz Complete'),
+          backgroundColor: Colors.blue,
+          title: Text(
+            '$moduleTitle Quiz Complete',
+            style: GoogleFonts.montserrat(color: Colors.white),
+          ),
           content: Text(
-              'Score: $score/${questions.length}\nMistakes: $mistakes\nXP Earned: 500'),
+            'Score: $score/${questions.length}\nMistakes: $mistakes\nXP Earned: 500',
+            style: GoogleFonts.montserrat(color: Colors.white),
+          ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
+                Navigator.of(context).pop(); // Close the dialog
                 Navigator.pop(context); // Return to modules menu
               },
-              child: const Text('Done'),
+              child: Text(
+                'Done',
+                style: GoogleFonts.montserrat(color: Colors.white),
+              ),
             ),
           ],
         );
@@ -166,7 +190,7 @@ class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
         appBar: AppBar(
           title: Text(widget.moduleTitle, style: GoogleFonts.montserrat()),
           backgroundColor: Colors.blue[900],
-          foregroundColor: Colors.white, // Set text color to white
+          foregroundColor: Colors.white,
         ),
         body: isLoading
             ? const Center(child: CircularProgressIndicator())
@@ -195,6 +219,8 @@ class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
         padding: const EdgeInsets.all(20.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment:
+              MainAxisAlignment.center, // Center the content vertically
           children: [
             Text(
               question,
@@ -216,8 +242,8 @@ class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
                     style: ElevatedButton.styleFrom(
                       backgroundColor:
                           selectedAnswerIndex == options.indexOf(option)
-                              ? Colors.blue[700]
-                              : Colors.blueAccent,
+                              ? Colors.orange // Color for selected options
+                              : Colors.blue[700], // Updated button color
                       minimumSize: const Size(double.infinity, 50),
                     ),
                     child: Text(
@@ -248,12 +274,14 @@ class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                minimumSize: const Size(double.infinity, 50),
+                backgroundColor: Colors.blue, // Updated color for Submit button
+                minimumSize: const Size(150, 40),
               ),
-              child: Text(isCorrect
-                  ? 'Next'
-                  : 'Submit'), // Change text based on correctness
+              child: Text(
+                isCorrect ? 'Next' : 'Submit',
+                style: GoogleFonts.montserrat(
+                    color: Colors.white), // Change text color to white
+              ),
             ),
             const SizedBox(height: 20),
             if (isAnswerSelected) ...[
@@ -263,7 +291,7 @@ class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
                   color: isCorrect
                       ? const Color(0xFF00FF00)
                       : const Color(0xFFFF6666),
-                  fontSize: 24,
+                  fontSize: 18, // Made feedback message smaller
                 ),
               ),
               Icon(

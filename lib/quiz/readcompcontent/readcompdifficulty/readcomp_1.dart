@@ -166,7 +166,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
 
     String userId = FirebaseAuth.instance.currentUser!.uid;
 
-    // Update progress and difficulty status
+    // Update progress and difficulty status in Reading Comprehension
     await FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
@@ -175,7 +175,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
         .set({
       'status': 'COMPLETED',
       'mistakes': mistakes,
-      'time': 0,
+      'time': 0, // Replace 0 with actual time taken if available
     }, SetOptions(merge: true));
 
     // Update the existing difficulty document instead of creating a new one
@@ -186,15 +186,19 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
         .doc(widget.moduleTitle)
         .collection('difficulty')
         .doc(
-            '$userId-Reading Comprehension-${widget.difficulty}') // Use the dynamically created unique ID
+            '$userId-Reading Comprehension-${widget.difficulty}') // Dynamic unique ID
         .set({
       'status': 'COMPLETED',
+      'mistakes': mistakes, // Add mistakes
+      'time': 0, // Replace 0 with actual time taken if available
     }, SetOptions(merge: true));
 
+    // Update XP
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
       'xp': FieldValue.increment(500),
     });
 
+    // Add to completed modules
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
       'completedModules': FieldValue.arrayUnion([widget.moduleTitle]),
     });
@@ -203,13 +207,22 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
       isCalculatingResults = false;
     });
 
+    // Show completion dialog
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text('${widget.moduleTitle} Quiz Complete'),
+          backgroundColor: Colors.blue, // Set background color
+          title: Text(
+            '${widget.moduleTitle} Quiz Complete',
+            style:
+                GoogleFonts.montserrat(color: Colors.white), // White text color
+          ),
           content: Text(
-              'Score: $score/${questions.length}\nMistakes: $mistakes\nXP Earned: 500'),
+            'Score: $score/${questions.length}\nMistakes: $mistakes\nXP Earned: 500',
+            style:
+                GoogleFonts.montserrat(color: Colors.white), // White text color
+          ),
           actions: [
             TextButton(
               onPressed: () {
@@ -223,7 +236,11 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
                   ),
                 );
               },
-              child: const Text('Done'),
+              child: Text(
+                'Done',
+                style: GoogleFonts.montserrat(
+                    color: Colors.white), // White text color
+              ),
             ),
           ],
         );

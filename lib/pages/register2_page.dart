@@ -456,10 +456,14 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                   children: [
                     const Icon(Icons.school, color: Colors.white),
                     const SizedBox(width: 10),
-                    Text(
-                      strand,
-                      style: const TextStyle(color: Colors.white),
-                      overflow: TextOverflow.ellipsis,
+                    Flexible(
+                      // Use Flexible to prevent overflow
+                      child: Text(
+                        strand,
+                        style: const TextStyle(color: Colors.white),
+                        overflow: TextOverflow.ellipsis,
+                        maxLines: 1, // Limit to one line
+                      ),
                     ),
                   ],
                 ),
