@@ -30,37 +30,43 @@ class _SettingsMenuState extends State<SettingsMenu> {
   Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue[900]!, Colors.blue[700]!],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+
+    return WillPopScope(
+      onWillPop: () async {
+        return true; // Exit the app when back is pressed
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue[900]!, Colors.blue[700]!],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          padding: EdgeInsets.symmetric(
+              horizontal: width * 0.05, vertical: height * 0.02),
+          child: ListView(
+            padding: const EdgeInsets.all(20.0),
+            children: [
+              Center(
+                child: Text(
+                  'Settings',
+                  style: GoogleFonts.montserrat(
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 20),
+              _buildSettingsButton('Edit Profile', context),
+              _buildSettingsButton('Log Out', context, isLogout: true),
+            ],
           ),
         ),
-        padding: EdgeInsets.symmetric(
-            horizontal: width * 0.05, vertical: height * 0.02),
-        child: ListView(
-          padding: const EdgeInsets.all(20.0),
-          children: [
-            Center(
-              child: Text(
-                'Settings',
-                style: GoogleFonts.montserrat(
-                    fontSize: 32,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _buildSettingsButton('Edit Profile', context),
-            _buildSettingsButton('Log Out', context, isLogout: true),
-          ],
-        ),
+        bottomNavigationBar: _buildBottomNavigationBar(
+            context), // Ensure the nav bar is included
       ),
-      bottomNavigationBar:
-          _buildBottomNavigationBar(context), // Ensure the nav bar is included
     );
   }
 

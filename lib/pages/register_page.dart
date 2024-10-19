@@ -167,6 +167,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     hint: 'Enter E-mail here...',
                     icon: Icons.email,
                     validator: _validateEmail,
+                    maxLength: 30,
                   ),
                   const SizedBox(height: 20),
 
@@ -177,6 +178,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     hint: 'Enter username here...',
                     icon: Icons.person,
                     validator: _validateUsername,
+                    maxLength: 10,
                   ),
                   const SizedBox(height: 20),
 
@@ -188,6 +190,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     isVisible: _isPasswordVisible,
                     toggleVisibility: _togglePasswordVisibility,
                     validator: _validatePassword,
+                    maxLength: 10,
                   ),
                   const SizedBox(height: 20),
 
@@ -199,6 +202,7 @@ class _RegisterPageState extends State<RegisterPage> {
                     isVisible: _isConfirmPasswordVisible,
                     toggleVisibility: _toggleConfirmPasswordVisibility,
                     validator: _validateConfirmPassword,
+                    maxLength: 10,
                   ),
                   const SizedBox(height: 20),
 
@@ -210,7 +214,6 @@ class _RegisterPageState extends State<RegisterPage> {
                     icon: Icons.code,
                     validator: _validateUniqueCode,
                     maxLength: 15,
-                    counterText: '',
                   ),
                   const SizedBox(height: 20),
 
@@ -274,7 +277,6 @@ class _RegisterPageState extends State<RegisterPage> {
     required IconData icon,
     String? Function(String?)? validator,
     int? maxLength,
-    String? counterText,
   }) {
     return TextFormField(
       controller: controller,
@@ -287,11 +289,17 @@ class _RegisterPageState extends State<RegisterPage> {
         hintText: hint,
         hintStyle: const TextStyle(color: Colors.white54),
         prefixIcon: Icon(icon, color: Colors.white),
-        counterText: counterText,
       ),
       style: GoogleFonts.montserrat(color: Colors.white),
       validator: validator,
       maxLength: maxLength,
+      // You can also set maxLines to 1 to ensure it's a single line
+      maxLines: 1,
+      // Hide the counter text
+      buildCounter: (BuildContext context,
+          {int? currentLength, int? maxLength, bool? isFocused}) {
+        return null; // Hides the counter text
+      },
     );
   }
 
@@ -302,6 +310,7 @@ class _RegisterPageState extends State<RegisterPage> {
     required bool isVisible,
     required VoidCallback toggleVisibility,
     String? Function(String?)? validator,
+    int? maxLength,
   }) {
     return TextFormField(
       controller: controller,
@@ -325,6 +334,13 @@ class _RegisterPageState extends State<RegisterPage> {
       ),
       style: GoogleFonts.montserrat(color: Colors.white),
       validator: validator,
+      maxLength: maxLength,
+      maxLines: 1,
+      // Hide the counter text
+      buildCounter: (BuildContext context,
+          {int? currentLength, int? maxLength, bool? isFocused}) {
+        return null; // Hides the counter text
+      },
     );
   }
 }

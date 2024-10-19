@@ -54,7 +54,7 @@ class _WordProQuizState extends State<WordProQuiz> {
       final querySnapshot = await FirebaseFirestore.instance
           .collection('fields')
           .doc('Word Pronunciation')
-          .collection(widget.difficulty)
+          .collection('Easy')
           .doc(uniqueId)
           .get();
 
@@ -124,7 +124,7 @@ class _WordProQuizState extends State<WordProQuiz> {
       );
 
       // Start silence timer
-      _resetSilenceTimer();
+      _startSilenceTimer();
     } else {
       setState(() {
         recognizedText = 'Speech recognition failed.';
@@ -135,22 +135,30 @@ class _WordProQuizState extends State<WordProQuiz> {
 
   Future<void> _stopRecording() async {
     await speech.stop(); // Stop listening
+    _silenceTimer?.cancel();
 
     if (isRecording) {
       setState(() {
         isRecording = false; // Update recording state
       });
     }
-
-    // Check the answer after stopping the recording
-    checkAnswer(); // Only call checkAnswer here
   }
 
-  void _resetSilenceTimer() {
-    _silenceTimer?.cancel();
-    _silenceTimer = Timer(const Duration(seconds: 5), () async {
-      await _stopRecording(); // Stop recording after 5 seconds of silence
+  void _startSilenceTimer() {
+    _silenceTimer?.cancel(); // Cancel any existing timer
+    _silenceTimer = Timer(const Duration(seconds: 5), () {
+      _handleSilence(); // Handle silence after 5 seconds
     });
+  }
+
+  void _handleSilence() {
+    if (isRecording) {
+      _stopRecording(); // Stop recording
+      setState(() {
+        recognizedText = 'No speech detected.';
+      });
+      checkAnswer(); // Automatically check the answer as wrong
+    }
   }
 
   Future<void> checkAnswer() async {
@@ -167,26 +175,22 @@ class _WordProQuizState extends State<WordProQuiz> {
         canRecord = false; // Disable recording when correct
       });
     } else {
-      // Increment attempt counter first
+      // Increment attempt counter
       attemptCounter++;
 
-      if (attemptCounter < 3) {
-        // First and second attempts
-        setState(() {
-          feedbackMessage = 'Not quite correct. Try again!';
-          feedbackIcon = Icons.cancel;
-          showNextButton = false; // Don't show Next button yet
+      setState(() {
+        if (attemptCounter < 3) {
+          feedbackMessage = 'Not quite correct.';
+          feedbackIcon = Icons.cancel; // Icon for incorrect attempts
+          showNextButton = false; // Keep Next button hidden
           canRecord = true; // Allow recording again
-        });
-      } else if (attemptCounter == 3) {
-        // Third attempt
-        setState(() {
-          feedbackMessage = 'Please try again'; // Message for the third attempt
+        } else if (attemptCounter == 3) {
+          feedbackMessage = 'You have used all attempts.';
           feedbackIcon = Icons.cancel; // Icon for the last attempt
-          showNextButton = true; // Show Next button after third attempt
+          showNextButton = true; // Show Next button after three attempts
           canRecord = false; // Disable recording after three attempts
-        });
-      }
+        }
+      });
     }
   }
 
@@ -354,7 +358,7 @@ class _WordProQuizState extends State<WordProQuiz> {
                   ),
                   Text(
                     feedbackMessage,
-                    style: TextStyle(
+                    style: GoogleFonts.montserrat(
                       color: feedbackIcon == Icons.check_circle
                           ? Colors.green
                           : Colors.red,
@@ -363,7 +367,6 @@ class _WordProQuizState extends State<WordProQuiz> {
                   ),
                   const SizedBox(height: 20),
                 ],
-                // Update the UI button in the build method
                 ElevatedButton(
                   onPressed:
                       canRecord && !showNextButton ? _startRecording : null,
@@ -378,7 +381,6 @@ class _WordProQuizState extends State<WordProQuiz> {
                     color: Colors.white,
                   ),
                 ),
-                // Show "Next" button only on correct answer or after three incorrect attempts
                 if (showNextButton) ...[
                   const SizedBox(height: 20),
                   ElevatedButton(

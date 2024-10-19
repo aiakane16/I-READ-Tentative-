@@ -52,83 +52,87 @@ class _ProfileMenuState extends State<ProfileMenu> {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
 
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue[900]!, Colors.blue[700]!],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+    return WillPopScope(
+      onWillPop: () async {
+        return true; // Exit the app when back is pressed
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue[900]!, Colors.blue[700]!],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
+          ),
+          padding: EdgeInsets.symmetric(
+              horizontal: width * 0.05, vertical: height * 0.02),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 30),
+              Center(
+                child: CircleAvatar(
+                  radius: 60,
+                  backgroundImage:
+                      AssetImage('assets/i_read_pic.png'), // Default image
+                ),
+              ),
+              const SizedBox(height: 20),
+              Center(
+                child: Text(
+                  fullName,
+                  style: GoogleFonts.montserrat(
+                      fontSize: 24,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold),
+                ),
+              ),
+              Center(
+                child: Text(
+                  strand,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.montserrat(color: Colors.white),
+                ),
+              ),
+              Center(
+                child: Text(
+                  schoolName, // Add school name here
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.montserrat(color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text('Statistics',
+                  style: GoogleFonts.montserrat(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Expanded(
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _buildStatCard('Ranking', '#1/100'),
+                        ),
+                        Expanded(
+                          child: _buildStatCard('XP Earned', xp.toString()),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Center(
+                      child: _buildStatCard('Modules Completed',
+                          '$completedModules/4'), // Change to /4
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
-        padding: EdgeInsets.symmetric(
-            horizontal: width * 0.05, vertical: height * 0.02),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(
-                height: 30), // Adjusted height for the profile picture
-            Center(
-              child: CircleAvatar(
-                radius: 60,
-                backgroundImage:
-                    AssetImage('assets/i_read_pic.png'), // Default image
-              ),
-            ),
-            const SizedBox(height: 20),
-            Center(
-              child: Text(
-                fullName,
-                style: GoogleFonts.montserrat(
-                    fontSize: 24,
-                    color: Colors.white,
-                    fontWeight: FontWeight.bold),
-              ),
-            ),
-            Center(
-              child: Text(
-                strand,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.montserrat(color: Colors.white),
-              ),
-            ),
-            Center(
-              child: Text(
-                schoolName, // Add school name here
-                textAlign: TextAlign.center,
-                style: GoogleFonts.montserrat(color: Colors.white),
-              ),
-            ),
-            const SizedBox(height: 20),
-            Text('Statistics',
-                style: GoogleFonts.montserrat(
-                    color: Colors.white, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 10),
-            Expanded(
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: _buildStatCard('Ranking', '#1/100'),
-                      ),
-                      Expanded(
-                        child: _buildStatCard('XP Earned', xp.toString()),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Center(
-                    child: _buildStatCard('Modules Completed',
-                        '$completedModules/4'), // Change to /4
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+        bottomNavigationBar: _buildBottomNavigationBar(context),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
 

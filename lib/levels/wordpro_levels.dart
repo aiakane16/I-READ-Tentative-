@@ -4,7 +4,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../indevelop.dart';
 import '../quiz/wordprocontent/wordprodifficulty/wordpro_1.dart';
-import '../quiz/wordprocontent/wordprodifficulty/wordpro_3.dart';
 
 class WordPronunciationLevels extends StatefulWidget {
   const WordPronunciationLevels({super.key});
@@ -203,7 +202,7 @@ class _WordPronunciationLevelsState extends State<WordPronunciationLevels> {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => const WordPronunciationContentHard(),
+                    builder: (context) => const DevelopmentScreen(),
                   ),
                 ).then((result) {
                   // Handle completion result for Hard level

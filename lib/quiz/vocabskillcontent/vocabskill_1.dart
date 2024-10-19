@@ -111,7 +111,7 @@ class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
         feedbackMessage = ''; // Clear feedback
       });
     } else {
-      _showResults();
+      _showResults(); // Only show results if it's the last question
     }
   }
 
@@ -257,30 +257,23 @@ class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                if (isAnswerSelected) {
-                  // If an answer has been selected, check if it's correct
-                  if (isCorrect) {
-                    _nextQuestion(); // Go to the next question if correct
+                if (selectedAnswerIndex != -1) {
+                  if (!isAnswerSelected) {
+                    _submitAnswer(); // Submit answer if selected
                   } else {
-                    // If incorrect, allow the user to select another option
-                    setState(() {
-                      feedbackMessage = ''; // Clear feedback
-                      isAnswerSelected = false; // Reset for new selection
-                      selectedAnswerIndex = -1; // Reset the selection
-                    });
+                    _nextQuestion(); // Allow moving to the next question after feedback is shown
                   }
-                } else if (selectedAnswerIndex != -1) {
-                  _submitAnswer(); // Submit answer if selected
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue, // Updated color for Submit button
+                backgroundColor: Colors.blue,
                 minimumSize: const Size(150, 40),
               ),
               child: Text(
-                isCorrect ? 'Next' : 'Submit',
-                style: GoogleFonts.montserrat(
-                    color: Colors.white), // Change text color to white
+                isAnswerSelected
+                    ? 'Next'
+                    : 'Submit', // Change button text based on selection
+                style: GoogleFonts.montserrat(color: Colors.white),
               ),
             ),
             const SizedBox(height: 20),

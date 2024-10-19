@@ -81,6 +81,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
             dialogBackgroundColor: Colors.blue[700],
             textTheme: const TextTheme(
               bodyMedium: TextStyle(color: Colors.white),
+              headlineMedium: TextStyle(fontSize: 20, color: Colors.white),
             ),
           ),
           child: child ?? const SizedBox(),
@@ -166,6 +167,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
         'birthday': _birthdayController.text,
         'address': _addressController.text,
         'email': widget.emailController.text,
+        'uniqueCode': FormData().uniqueCode, // Add unique code here
         'downloadedModules': [],
         'completedModules': [],
         'xp': 0,
@@ -295,6 +297,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                 inputFormatters: [
                   FilteringTextInputFormatter.deny(RegExp(r'\d')),
                 ],
+                maxLength: 30, // Set max length for Full Name
               ),
               const SizedBox(height: 20),
 
@@ -327,6 +330,7 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                 label: 'Address',
                 hint: 'Barangay, City...',
                 icon: Icons.location_on,
+                maxLength: 50, // Set max length for Address
               ),
               const SizedBox(height: 20),
 
@@ -401,11 +405,12 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
     required IconData icon,
     bool readOnly = false,
     List<TextInputFormatter>? inputFormatters,
+    int? maxLength,
   }) {
     return TextFormField(
       controller: controller,
       readOnly: readOnly,
-      maxLength: 50,
+      maxLength: maxLength,
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white),
@@ -457,12 +462,11 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
                     const Icon(Icons.school, color: Colors.white),
                     const SizedBox(width: 10),
                     Flexible(
-                      // Use Flexible to prevent overflow
                       child: Text(
                         strand,
                         style: const TextStyle(color: Colors.white),
                         overflow: TextOverflow.ellipsis,
-                        maxLines: 1, // Limit to one line
+                        maxLines: 1,
                       ),
                     ),
                   ],

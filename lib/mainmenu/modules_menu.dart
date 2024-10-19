@@ -6,7 +6,6 @@ import 'package:i_read_app/levels/sentcomp_levels.dart';
 import 'package:i_read_app/levels/vocabskills_levels.dart';
 import '../levels/readcomp_levels.dart'; // Import for Reading Comprehension
 import '../levels/wordpro_levels.dart'; // Import for Word Pronunciation
-// Import for Vocabulary Skills
 
 class ModulesMenu extends StatefulWidget {
   final Function(List<String>) onModulesUpdated;
@@ -153,129 +152,134 @@ class _ModulesMenuState extends State<ModulesMenu> {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
 
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue[900]!, Colors.blue[700]!],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+    return WillPopScope(
+      onWillPop: () async {
+        return true; // Exit the app when back is pressed
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue[900]!, Colors.blue[700]!],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
           ),
-        ),
-        padding: EdgeInsets.symmetric(
-            horizontal: width * 0.05,
-            vertical: height * 0.01), // Reduced vertical padding
-        child: isLoading
-            ? const Center(child: CircularProgressIndicator())
-            : Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(
-                      height: 20), // Reduced height for the "Modules" text
-                  Padding(
-                    padding: const EdgeInsets.only(top: 10.0),
-                    child: Text(
-                      'Modules',
-                      style: GoogleFonts.montserrat(
-                          fontSize: width * 0.06, color: Colors.white),
+          padding: EdgeInsets.symmetric(
+              horizontal: width * 0.05,
+              vertical: height * 0.01), // Reduced vertical padding
+          child: isLoading
+              ? const Center(child: CircularProgressIndicator())
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 20),
+                    Padding(
+                      padding: const EdgeInsets.only(top: 10.0),
+                      child: Text(
+                        'Modules',
+                        style: GoogleFonts.montserrat(
+                            fontSize: width * 0.06, color: Colors.white),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 20),
-                  Expanded(
-                    child: ListView.builder(
-                      itemCount: modules.length,
-                      itemBuilder: (context, index) {
-                        String currentModule = modules[index];
-                        int completedCount =
-                            completedDifficultiesCountMap[currentModule] ?? 0;
+                    const SizedBox(height: 20),
+                    Expanded(
+                      child: ListView.builder(
+                        itemCount: modules.length,
+                        itemBuilder: (context, index) {
+                          String currentModule = modules[index];
+                          int completedCount =
+                              completedDifficultiesCountMap[currentModule] ?? 0;
 
-                        return Card(
-                          margin: const EdgeInsets.symmetric(vertical: 10),
-                          child: ListTile(
-                            title: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  currentModule,
-                                  style: GoogleFonts.montserrat(
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 18,
-                                      color: Colors.blue),
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  'Status: ${moduleStatuses[index]}',
-                                  style: GoogleFonts.montserrat(
-                                      fontSize: 14, color: Colors.black),
-                                ),
-                                Text(
-                                  'Difficulty: EASY',
-                                  style: GoogleFonts.montserrat(
-                                      fontSize: 14, color: Colors.black),
-                                ),
-                                Text(
-                                  'Reward: 500 XP',
-                                  style: GoogleFonts.montserrat(
-                                      fontSize: 14, color: Colors.lightBlue),
-                                ),
-                                const SizedBox(height: 5),
-                                LinearProgressIndicator(
-                                  value: completedCount / 3.0,
-                                  backgroundColor: Colors.grey[300],
-                                  color: Colors.green,
-                                ),
-                                const SizedBox(height: 5),
-                                Text(
-                                  '$completedCount / 3 completed',
-                                  style: GoogleFonts.montserrat(),
-                                ),
-                              ],
-                            ),
-                            onTap: () {
-                              if (currentModule == 'Reading Comprehension') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
+                          return Card(
+                            margin: const EdgeInsets.symmetric(vertical: 10),
+                            child: ListTile(
+                              title: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    currentModule,
+                                    style: GoogleFonts.montserrat(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 18,
+                                        color: Colors.blue),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    'Status: ${moduleStatuses[index]}',
+                                    style: GoogleFonts.montserrat(
+                                        fontSize: 14, color: Colors.black),
+                                  ),
+                                  Text(
+                                    'Difficulty: EASY',
+                                    style: GoogleFonts.montserrat(
+                                        fontSize: 14, color: Colors.black),
+                                  ),
+                                  Text(
+                                    'Reward: 500 XP',
+                                    style: GoogleFonts.montserrat(
+                                        fontSize: 14, color: Colors.lightBlue),
+                                  ),
+                                  const SizedBox(height: 5),
+                                  LinearProgressIndicator(
+                                    value: completedCount / 3.0,
+                                    backgroundColor: Colors.grey[300],
+                                    color: Colors.green,
+                                  ),
+                                  const SizedBox(height: 5),
+                                  Text(
+                                    '$completedCount / 3 completed',
+                                    style: GoogleFonts.montserrat(),
+                                  ),
+                                ],
+                              ),
+                              onTap: () {
+                                if (currentModule == 'Reading Comprehension') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) =>
+                                            const ReadingComprehensionLevels()),
+                                  );
+                                } else if (currentModule ==
+                                    'Word Pronunciation') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
                                       builder: (context) =>
-                                          const ReadingComprehensionLevels()),
-                                );
-                              } else if (currentModule ==
-                                  'Word Pronunciation') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const WordPronunciationLevels(),
-                                  ),
-                                );
-                              } else if (currentModule ==
-                                  'Sentence Composition') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const SentenceCompositionLevels(),
-                                  ),
-                                );
-                              } else if (currentModule == 'Vocabulary Skills') {
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        VocabularySkillsLevels(),
-                                  ),
-                                );
-                              }
-                            },
-                          ),
-                        );
-                      },
+                                          const WordPronunciationLevels(),
+                                    ),
+                                  );
+                                } else if (currentModule ==
+                                    'Sentence Composition') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          const SentenceCompositionLevels(),
+                                    ),
+                                  );
+                                } else if (currentModule ==
+                                    'Vocabulary Skills') {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          VocabularySkillsLevels(),
+                                    ),
+                                  );
+                                }
+                              },
+                            ),
+                          );
+                        },
+                      ),
                     ),
-                  ),
-                ],
-              ),
+                  ],
+                ),
+        ),
+        bottomNavigationBar: _buildBottomNavigationBar(context),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
 

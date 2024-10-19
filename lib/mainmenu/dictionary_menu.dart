@@ -17,61 +17,65 @@ class DictionaryMenu extends StatelessWidget {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
 
-    return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Colors.blue[900]!, Colors.blue[700]!],
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
+    return WillPopScope(
+      onWillPop: () async {
+        return true; // Exit the app when back is pressed
+      },
+      child: Scaffold(
+        body: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [Colors.blue[900]!, Colors.blue[700]!],
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+            ),
           ),
-        ),
-        padding: EdgeInsets.symmetric(
-            horizontal: width * 0.05, vertical: height * 0.02),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(
-                height: 10), // Adjusted height for the "Dictionary" text
-            Padding(
-              padding: const EdgeInsets.only(top: 10.0),
-              child: Text(
-                'Dictionary',
-                style: GoogleFonts.montserrat(
-                  fontSize: width *
-                      0.06, // Match the text size to the greeting message
-                  color: Colors.white,
+          padding: EdgeInsets.symmetric(
+              horizontal: width * 0.05, vertical: height * 0.02),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 10),
+              Padding(
+                padding: const EdgeInsets.only(top: 10.0),
+                child: Text(
+                  'Dictionary',
+                  style: GoogleFonts.montserrat(
+                    fontSize: width * 0.06,
+                    color: Colors.white,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(height: 20),
-            Expanded(
-              child: ListView(
-                children: dictionaryEntries.entries.map((entry) {
-                  return Card(
-                    color: Colors.white, // White background for cards
-                    child: ListTile(
-                      title: Text(
-                        entry.key,
-                        style: GoogleFonts.montserrat(
-                          fontWeight: FontWeight.bold,
-                          color: Colors.blue, // Blue color for module name
+              const SizedBox(height: 20),
+              Expanded(
+                child: ListView(
+                  children: dictionaryEntries.entries.map((entry) {
+                    return Card(
+                      color: Colors.white, // White background for cards
+                      child: ListTile(
+                        title: Text(
+                          entry.key,
+                          style: GoogleFonts.montserrat(
+                            fontWeight: FontWeight.bold,
+                            color: Colors.blue, // Blue color for module name
+                          ),
+                        ),
+                        subtitle: Text(
+                          entry.value,
+                          style: GoogleFonts.montserrat(
+                              color:
+                                  Colors.black), // Black color for description
                         ),
                       ),
-                      subtitle: Text(
-                        entry.value,
-                        style: GoogleFonts.montserrat(
-                            color: Colors.black), // Black color for description
-                      ),
-                    ),
-                  );
-                }).toList(),
+                    );
+                  }).toList(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
+        bottomNavigationBar: _buildBottomNavigationBar(context),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(context),
     );
   }
 

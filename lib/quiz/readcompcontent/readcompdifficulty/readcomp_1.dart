@@ -166,19 +166,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
 
     String userId = FirebaseAuth.instance.currentUser!.uid;
 
-    // Update progress and difficulty status in Reading Comprehension
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('progress')
-        .doc(widget.moduleTitle)
-        .set({
-      'status': 'COMPLETED',
-      'mistakes': mistakes,
-      'time': 0, // Replace 0 with actual time taken if available
-    }, SetOptions(merge: true));
-
-    // Update the existing difficulty document instead of creating a new one
+    // Update the existing difficulty document instead of the module
     await FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
@@ -188,7 +176,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
         .doc(
             '$userId-Reading Comprehension-${widget.difficulty}') // Dynamic unique ID
         .set({
-      'status': 'COMPLETED',
+      'status': 'COMPLETED', // Mark as completed
       'mistakes': mistakes, // Add mistakes
       'time': 0, // Replace 0 with actual time taken if available
     }, SetOptions(merge: true));
@@ -198,7 +186,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
       'xp': FieldValue.increment(500),
     });
 
-    // Add to completed modules
+    // Add to completed modules (optional, can be removed if not needed)
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
       'completedModules': FieldValue.arrayUnion([widget.moduleTitle]),
     });
