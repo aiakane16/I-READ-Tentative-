@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_tts/flutter_tts.dart';
-import 'package:record/record.dart';
-import 'package:speech_to_text/speech_to_text.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
-import '../../../mainmenu/modules_menu.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+
+import '../../../mainmenu/modules_menu.dart';
 
 class WordProQuiz extends StatefulWidget {
   final String moduleTitle;
@@ -26,20 +27,18 @@ class WordProQuiz extends StatefulWidget {
 
 class _WordProQuizState extends State<WordProQuiz> {
   final FlutterTts flutterTts = FlutterTts();
-  final SpeechToText speech = SpeechToText();
-  final AudioRecorder _record = AudioRecorder();
+  final stt.SpeechToText speech = stt.SpeechToText();
   List<Map<String, dynamic>> questions = [];
   int currentQuestionIndex = 0;
   String recognizedText = '';
-  bool isRecording = false;
+  bool isListening = false;
   String feedbackMessage = '';
   IconData feedbackIcon = Icons.help;
-  int attemptCounter = 0; // Track number of attempts
-  bool showNextButton = false; // Control visibility of the Next button
-  bool canRecord = true; // Control recording button availability
-  Timer? _silenceTimer; // Timer for silence detection
-
+  int attemptCounter = 0;
+  bool showNextButton = false;
   late String userId;
+  Timer? _silenceTimer;
+  bool isSpeaking = false; // Track TTS speaking state
 
   @override
   void initState() {
@@ -65,7 +64,6 @@ class _WordProQuizState extends State<WordProQuiz> {
 
           for (var module in modulesData) {
             var questionsData = module['questions'] as List<dynamic>;
-
             for (var questionData in questionsData) {
               questions.add({
                 'question': questionData['question'],
@@ -77,7 +75,7 @@ class _WordProQuizState extends State<WordProQuiz> {
       }
       if (questions.isNotEmpty) {
         await _speakQuestion();
-        setState(() {}); // Refresh UI without feedback
+        setState(() {});
       }
     } catch (e) {
       print('Error loading questions: $e');
@@ -86,138 +84,121 @@ class _WordProQuizState extends State<WordProQuiz> {
 
   Future<void> _speakQuestion() async {
     if (questions.isNotEmpty) {
-      canRecord = false; // Disable recording button
+      setState(() {
+        isSpeaking = true; // Set speaking state
+      });
       await flutterTts.speak(questions[currentQuestionIndex]['question']);
       flutterTts.setCompletionHandler(() {
         setState(() {
-          canRecord = true; // Re-enable recording button after TTS completes
+          isSpeaking = false; // Reset speaking state
         });
       });
     }
   }
 
-  Future<void> _startRecording() async {
-    final hasPermission = await speech.initialize();
-    if (hasPermission) {
-      setState(() {
-        recognizedText = 'Say something...';
-        feedbackMessage = '';
-        feedbackIcon = Icons.help;
-        showNextButton = false;
-        isRecording = true; // Set recording state
-      });
+  void startListening() async {
+    var status = await Permission.microphone.status;
+    if (status.isDenied) {
+      status = await Permission.microphone.request();
+      if (status.isDenied) {
+        setState(() {
+          recognizedText = 'Microphone permission denied.';
+        });
+        return;
+      }
+    }
 
-      // Start listening
-      speech.listen(
-        onResult: (result) {
+    if (!isListening && !isSpeaking) {
+      // Check if TTS is speaking
+      bool available = await speech.initialize();
+      if (available) {
+        setState(() {
+          recognizedText = 'Listening...';
+          feedbackMessage = '';
+          feedbackIcon = Icons.help;
+          showNextButton = false;
+          isListening = true;
+        });
+
+        // Start listening and the countdown immediately
+        speech.listen(onResult: (result) {
           setState(() {
             recognizedText = result.recognizedWords;
           });
+        });
 
-          if (result.finalResult) {
-            _stopRecording();
-            checkAnswer(); // After recording, check the answer
-          }
-        },
-        listenFor: Duration(seconds: 5),
-        partialResults: true,
-      );
-
-      // Start silence timer
-      _startSilenceTimer();
-    } else {
-      setState(() {
-        recognizedText = 'Speech recognition failed.';
-        feedbackIcon = Icons.error;
-      });
+        // Start the countdown timer to check the speech after 5 seconds
+        _silenceTimer?.cancel(); // Cancel any existing timer
+        _silenceTimer = Timer(Duration(seconds: 5), () {
+          speech.stop();
+          isListening = false;
+          checkAnswer(recognizedText); // Check the answer after 5 seconds
+        });
+      } else {
+        setState(() {
+          recognizedText = 'Speech recognition not available.';
+        });
+      }
     }
   }
 
-  Future<void> _stopRecording() async {
-    await speech.stop(); // Stop listening
-    _silenceTimer?.cancel();
-
-    if (isRecording) {
-      setState(() {
-        isRecording = false; // Update recording state
-      });
-    }
-  }
-
-  void _startSilenceTimer() {
-    _silenceTimer?.cancel(); // Cancel any existing timer
-    _silenceTimer = Timer(const Duration(seconds: 5), () {
-      _handleSilence(); // Handle silence after 5 seconds
-    });
-  }
-
-  void _handleSilence() {
-    if (isRecording) {
-      _stopRecording(); // Stop recording
-      setState(() {
-        recognizedText = 'No speech detected.';
-      });
-      checkAnswer(); // Automatically check the answer as wrong
-    }
-  }
-
-  Future<void> checkAnswer() async {
+  Future<void> checkAnswer(String recognizedText) async {
     String correctAnswer = questions[currentQuestionIndex]['correctAnswer'];
-    bool isCorrect =
-        _normalizeText(recognizedText) == _normalizeText(correctAnswer);
+    int accuracy = _calculateAccuracy(recognizedText, correctAnswer);
 
-    if (isCorrect) {
+    if (accuracy >= 90) {
+      // Change threshold to 90%
       setState(() {
-        feedbackMessage = 'Correct!';
+        feedbackMessage = 'You are $accuracy% accurate!';
         feedbackIcon = Icons.check_circle;
-        attemptCounter = 0; // Reset counter on correct answer
-        showNextButton = true; // Show next button
-        canRecord = false; // Disable recording when correct
+        attemptCounter = 0;
+        showNextButton = true;
       });
     } else {
-      // Increment attempt counter
       attemptCounter++;
-
       setState(() {
-        if (attemptCounter < 3) {
-          feedbackMessage = 'Not quite correct.';
-          feedbackIcon = Icons.cancel; // Icon for incorrect attempts
-          showNextButton = false; // Keep Next button hidden
-          canRecord = true; // Allow recording again
-        } else if (attemptCounter == 3) {
-          feedbackMessage = 'You have used all attempts.';
-          feedbackIcon = Icons.cancel; // Icon for the last attempt
-          showNextButton = true; // Show Next button after three attempts
-          canRecord = false; // Disable recording after three attempts
-        }
+        feedbackMessage = 'You are $accuracy% accurate!';
+        feedbackIcon = Icons.cancel;
+        showNextButton = attemptCounter >= 3;
       });
     }
   }
 
-  String _normalizeText(String text) {
-    return text.toLowerCase().replaceAll(RegExp(r'[.,!?;]'), '').trim();
+  int _calculateAccuracy(String recognizedText, String correctAnswer) {
+    // Calculate accuracy based on word similarity
+    int correctCount = 0;
+    List<String> recognizedWords = recognizedText.split(' ');
+    List<String> correctWords = correctAnswer.split(' ');
+
+    for (var word in recognizedWords) {
+      if (correctWords.contains(word)) {
+        correctCount++;
+      }
+    }
+
+    // Calculate percentage accuracy
+    int accuracy = ((correctCount / correctWords.length) * 100).round();
+    return accuracy > 100 ? 100 : accuracy; // Limit accuracy to 100%
   }
 
   Future<void> _nextQuestion() async {
     if (currentQuestionIndex < questions.length - 1 && showNextButton) {
       setState(() {
         currentQuestionIndex++;
-        recognizedText =
-            'Say something...'; // Reset recognized text for the next question
-        feedbackMessage = ''; // Clear feedback for next question
-        feedbackIcon = Icons.help; // Reset feedback for next question
-        attemptCounter = 0; // Reset attempts for next question
-        showNextButton = false; // Hide Next button for new question
-        canRecord = true; // Re-enable recording for the next question
+        recognizedText = 'Say something...';
+        feedbackMessage = '';
+        feedbackIcon = Icons.help;
+        attemptCounter = 0;
+        showNextButton = false;
       });
-      await _speakQuestion(); // Speak the next question
+      await _speakQuestion();
     } else {
-      await _showCompletionDialog(); // Show completion dialog if all questions are answered
+      await _showCompletionDialog();
     }
   }
 
   Future<void> _showCompletionDialog() async {
-    if (!mounted) return; // Ensure widget is still mounted
+    if (!mounted) return;
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -230,10 +211,8 @@ class _WordProQuizState extends State<WordProQuiz> {
           actions: [
             TextButton(
               onPressed: () async {
-                Navigator.of(dialogContext).pop(); // Close dialog
+                Navigator.of(dialogContext).pop();
                 await _updateUserProgress();
-
-                // Navigate to ModulesMenu safely
                 Navigator.of(context).pushAndRemoveUntil(
                   MaterialPageRoute(
                     builder: (context) => ModulesMenu(
@@ -248,7 +227,7 @@ class _WordProQuizState extends State<WordProQuiz> {
             ),
             TextButton(
               onPressed: () {
-                Navigator.of(dialogContext).pop(); // Close dialog
+                Navigator.of(dialogContext).pop();
               },
               child:
                   const Text('Cancel', style: TextStyle(color: Colors.white)),
@@ -274,21 +253,16 @@ class _WordProQuizState extends State<WordProQuiz> {
     try {
       final docSnapshot = await docRef.get();
       if (docSnapshot.exists) {
-        // Update existing document
-        print('Updating existing document: $difficultyDocId');
         await docRef.set({
-          'status': 'COMPLETED', // Mark as completed
-          'attempts': FieldValue.increment(1) // Increment attempts
+          'status': 'COMPLETED',
+          'attempts': FieldValue.increment(1),
         }, SetOptions(merge: true));
       } else {
-        // Create new document if it doesn't exist
-        print('Creating new document: $difficultyDocId');
         await docRef.set({
-          'status': 'COMPLETED', // Initial status
-          'attempts': 1 // Initial attempt count
+          'status': 'COMPLETED',
+          'attempts': 1,
         });
       }
-      print('Document updated successfully.');
     } catch (e) {
       print('Error updating document: $e');
     }
@@ -296,8 +270,8 @@ class _WordProQuizState extends State<WordProQuiz> {
 
   @override
   void dispose() {
-    _record.dispose();
-    _silenceTimer?.cancel(); // Cancel the silence timer
+    speech.stop();
+    _silenceTimer?.cancel();
     super.dispose();
   }
 
@@ -362,21 +336,22 @@ class _WordProQuizState extends State<WordProQuiz> {
                       color: feedbackIcon == Icons.check_circle
                           ? Colors.green
                           : Colors.red,
-                      fontSize: 20, // Adjusted font size for feedback
+                      fontSize: 20,
                     ),
                   ),
                   const SizedBox(height: 20),
                 ],
                 ElevatedButton(
-                  onPressed:
-                      canRecord && !showNextButton ? _startRecording : null,
+                  onPressed: !isListening && !showNextButton && !isSpeaking
+                      ? startListening
+                      : null,
                   style: ElevatedButton.styleFrom(
                     shape: const CircleBorder(),
                     backgroundColor: Colors.blue,
                     padding: const EdgeInsets.all(20),
                   ),
                   child: Icon(
-                    isRecording ? Icons.stop : Icons.mic,
+                    isListening ? Icons.stop : Icons.mic,
                     size: 40,
                     color: Colors.white,
                   ),

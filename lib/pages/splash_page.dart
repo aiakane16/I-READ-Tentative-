@@ -165,7 +165,7 @@ class _SplashPageState extends State<SplashPage>
                   const SizedBox(height: 20), // Padding below the buttons
                   // Version text
                   const Text(
-                    'Beta 1.2 (0.4.0)', // Change this to your current app version
+                    'v.0.4.0', // Change this to your current app version
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 14,

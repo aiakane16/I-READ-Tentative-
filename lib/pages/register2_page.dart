@@ -89,12 +89,10 @@ class _PersonalInfoPageState extends State<PersonalInfoPage> {
       },
     );
 
-    if (pickedDate != null) {
-      String formattedDate = DateFormat('MM/dd/yyyy').format(pickedDate);
-      setState(() {
-        _birthdayController.text = formattedDate;
-      });
-    }
+    String formattedDate = DateFormat('MM/dd/yyyy').format(pickedDate!);
+    setState(() {
+      _birthdayController.text = formattedDate;
+    });
   }
 
   Future<void> _showConfirmationDialog() async {

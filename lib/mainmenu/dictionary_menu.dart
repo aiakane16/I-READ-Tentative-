@@ -1,19 +1,79 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
-class DictionaryMenu extends StatelessWidget {
+class DictionaryMenu extends StatefulWidget {
   const DictionaryMenu({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Example dictionary entries
-    final Map<String, String> dictionaryEntries = {
-      'Reading Comprehension': 'Understanding and interpreting what you read.',
-      'Sentence Composition': 'Constructing sentences correctly.',
-      'Vocabulary Skills': 'Improving the range of words you use.',
-      'Word Pronunciation': 'Correctly saying words aloud.',
-    };
+  _DictionaryMenuState createState() => _DictionaryMenuState();
+}
 
+class _DictionaryMenuState extends State<DictionaryMenu> {
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  List<Map<String, String>> _dictionaryEntries = [];
+  List<Map<String, String>> _filteredEntries = [];
+  String _searchQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDictionaryEntries();
+  }
+
+  Future<void> _fetchDictionaryEntries() async {
+    try {
+      DocumentSnapshot<Map<String, dynamic>> snapshot =
+          await _firestore.collection('fields').doc('Dictionary').get();
+
+      if (snapshot.exists) {
+        Map<String, dynamic>? data = snapshot.data();
+        if (data!.containsKey('Words')) {
+          Map<String, dynamic> wordsMap = data['Words'];
+
+          setState(() {
+            _dictionaryEntries = [];
+            wordsMap.forEach((key, value) {
+              // Ensure value is a List<dynamic>
+              if (value is List<dynamic>) {
+                // Check that we have at least 2 elements: title and description
+                if (value.length >= 2) {
+                  _dictionaryEntries.add({
+                    'title': value[0] as String,
+                    'description': value[1] as String,
+                  });
+                }
+              }
+            });
+            _filteredEntries =
+                _dictionaryEntries; // Initialize filtered entries
+          });
+        }
+      }
+    } catch (e) {
+      print('Error fetching dictionary entries: $e');
+    }
+  }
+
+  void _filterEntries(String query) {
+    setState(() {
+      _searchQuery = query;
+      if (query.isEmpty) {
+        _filteredEntries =
+            _dictionaryEntries; // Show all entries when query is empty
+      } else {
+        _filteredEntries = _dictionaryEntries.where((entry) {
+          return entry['title']
+              .toString()
+              .toLowerCase()
+              .contains(query.toLowerCase());
+        }).toList();
+      }
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     double width = MediaQuery.of(context).size.width;
     double height = MediaQuery.of(context).size.height;
 
@@ -46,25 +106,48 @@ class DictionaryMenu extends StatelessWidget {
                   ),
                 ),
               ),
+              const SizedBox(height: 10),
+// Search Bar
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: TextField(
+                  onChanged: _filterEntries,
+                  decoration: InputDecoration(
+                    hintText: 'Search...',
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.all(10),
+                    hintStyle: GoogleFonts.montserrat(
+                      color: Colors.white.withOpacity(0.7), // Hint text color
+                    ),
+                  ),
+                  style: GoogleFonts.montserrat(
+                    color: Colors.white, // Text color
+                  ),
+                ),
+              ),
+
               const SizedBox(height: 20),
               Expanded(
                 child: ListView(
-                  children: dictionaryEntries.entries.map((entry) {
+                  children: _filteredEntries.map((entry) {
                     return Card(
                       color: Colors.white, // White background for cards
                       child: ListTile(
                         title: Text(
-                          entry.key,
+                          entry['title']!,
                           style: GoogleFonts.montserrat(
                             fontWeight: FontWeight.bold,
                             color: Colors.blue, // Blue color for module name
                           ),
                         ),
                         subtitle: Text(
-                          entry.value,
+                          entry['description']!,
                           style: GoogleFonts.montserrat(
-                              color:
-                                  Colors.black), // Black color for description
+                            color: Colors.black, // Black color for description
+                          ),
                         ),
                       ),
                     );
