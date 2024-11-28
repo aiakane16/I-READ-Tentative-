@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:i_read_app/quiz/readcompcontent/readcompdifficulty/readcomp_1.dart'; // Ensure this path is correct
 
-class ReadingContentPage extends StatelessWidget {
+import '../wordprodifficulty/wordpro_1.dart';
+
+class ReadingContentPageWordPro1 extends StatelessWidget {
   final String level;
   final List<String> uniqueIds;
 
-  const ReadingContentPage({
+  const ReadingContentPageWordPro1({
     super.key,
     required this.level,
     required this.uniqueIds,
@@ -25,7 +26,7 @@ class ReadingContentPage extends StatelessWidget {
           },
         ),
         title:
-            Text('Reading Content - $level', style: GoogleFonts.montserrat()),
+            Text('Word Pro Content - $level', style: GoogleFonts.montserrat()),
         backgroundColor: Colors.blue[900],
         foregroundColor: Colors.white, // Set text color to white
       ),
@@ -57,7 +58,7 @@ class ReadingContentPage extends StatelessWidget {
               Divider(color: Colors.white, thickness: 2), // Underline
               const SizedBox(height: 20),
               Text(
-                'Here is where you will display the reading content for the $level level.',
+                'Here is where you will display the content for the Word Pro $level level.',
                 style:
                     GoogleFonts.montserrat(fontSize: 18, color: Colors.white),
               ),
@@ -67,12 +68,12 @@ class ReadingContentPage extends StatelessWidget {
                 child: ElevatedButton(
                   onPressed: () {
                     print('Unique IDs: $uniqueIds'); // Debug print
-                    // Navigate to the short story page when the button is pressed
+                    // Navigate to the Word Pro quiz page when the button is pressed
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (context) => ReadCompQuiz(
-                          moduleTitle: 'Reading Comprehension',
+                        builder: (context) => WordProQuiz(
+                          moduleTitle: 'Word Pro Quiz',
                           difficulty:
                               difficulty, // Pass the actual difficulty level
                           uniqueIds: uniqueIds,
@@ -86,7 +87,7 @@ class ReadingContentPage extends StatelessWidget {
                         horizontal: 30, vertical: 15),
                   ),
                   child: Text(
-                    'Play the quiz!',
+                    'Start the Word Pro Quiz!',
                     style: GoogleFonts.montserrat(
                       color: Colors.white, // Change button text color to white
                     ),
@@ -102,11 +103,11 @@ class ReadingContentPage extends StatelessWidget {
 
   String determineDifficulty(List<String> uniqueIds) {
     // Determine the difficulty based on unique IDs
-    if (uniqueIds.contains('myoLYQD0ML1gWuSI0t1U')) {
+    if (uniqueIds.contains('sPB0TBLavMJimWriirGr')) {
       return 'Easy';
-    } else if (uniqueIds.contains('2jOvLgO48hHIMAwpi1qx')) {
+    } else if (uniqueIds.contains('DKWdld9O5Iu3yfMkmO00')) {
       return 'Medium';
-    } else if (uniqueIds.contains('JBTrWkZJjYfSSwvQUl9Z')) {
+    } else if (uniqueIds.contains('0gDRHXVKhjGmlDj993DQ')) {
       return 'Hard';
     }
     return 'Unknown'; // Default case

@@ -5,9 +5,9 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../help.dart';
 import '../levels/readcomp_levels.dart';
-import '../quiz/sentcompcontent/sentcomp_1.dart';
-import '../quiz/vocabskillcontent/vocabskill_1.dart';
-import '../quiz/wordprocontent/wordprodifficulty/wordpro_1.dart';
+import '../levels/sentcomp_levels.dart';
+import '../levels/vocabskills_levels.dart';
+import '../levels/wordpro_levels.dart';
 
 class HomeMenu extends StatefulWidget {
   final List<String> uniqueIds; // Define uniqueIds here
@@ -24,7 +24,6 @@ class _HomeMenuState extends State<HomeMenu> {
   int xp = 0;
   List<String> completedModules = [];
   List<Map<String, dynamic>> allModules = [];
-  Map<String, int> completedDifficultiesCountMap = {};
 
   @override
   void initState() {
@@ -67,8 +66,6 @@ class _HomeMenuState extends State<HomeMenu> {
         for (var module in modulesData) {
           loadedModules.add({
             'title': module['title'] ?? 'Unknown Module',
-            'difficulty': module['difficulty'] ?? 'EASY',
-            'reward': module['reward'] ?? '500 XP',
             'status': 'NOT FINISHED'
           });
         }
@@ -79,8 +76,6 @@ class _HomeMenuState extends State<HomeMenu> {
           .any((module) => module['title'] == 'Reading Comprehension')) {
         loadedModules.add({
           'title': 'Reading Comprehension',
-          'difficulty': 'EASY',
-          'reward': '500 XP',
           'status': 'NOT FINISHED',
         });
       }
@@ -89,8 +84,6 @@ class _HomeMenuState extends State<HomeMenu> {
           .any((module) => module['title'] == 'Word Pronunciation')) {
         loadedModules.add({
           'title': 'Word Pronunciation',
-          'difficulty': 'EASY',
-          'reward': '500 XP',
           'status': 'NOT FINISHED',
         });
       }
@@ -99,8 +92,6 @@ class _HomeMenuState extends State<HomeMenu> {
           .any((module) => module['title'] == 'Sentence Composition')) {
         loadedModules.add({
           'title': 'Sentence Composition',
-          'difficulty': 'EASY',
-          'reward': '500 XP',
           'status': 'NOT FINISHED',
         });
       }
@@ -109,8 +100,6 @@ class _HomeMenuState extends State<HomeMenu> {
           .any((module) => module['title'] == 'Vocabulary Skills')) {
         loadedModules.add({
           'title': 'Vocabulary Skills',
-          'difficulty': 'EASY',
-          'reward': '500 XP',
           'status': 'NOT FINISHED',
         });
       }
@@ -147,7 +136,7 @@ class _HomeMenuState extends State<HomeMenu> {
 
     if (allModules.isNotEmpty) {
       allModules.shuffle(rng);
-      randomModules = allModules.take(2).toList();
+      randomModules = allModules.take(3).toList(); // Changed to 3 modules
     }
 
     return randomModules;
@@ -167,33 +156,21 @@ class _HomeMenuState extends State<HomeMenu> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => WordProQuiz(
-            moduleTitle: moduleTitle,
-            uniqueIds: widget.uniqueIds, // Pass unique IDs
-            difficulty: module['difficulty'], // Pass difficulty
-          ),
+          builder: (context) => WordPronunciationLevels(),
         ),
       );
     } else if (moduleTitle == 'Sentence Composition') {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => SentCompQuiz(
-            moduleTitle: moduleTitle,
-            uniqueIds: widget.uniqueIds, // Pass unique IDs
-            difficulty: module['difficulty'],
-          ),
+          builder: (context) => SentenceCompositionLevels(),
         ),
       );
     } else if (moduleTitle == 'Vocabulary Skills') {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (context) => VocabSkillsQuiz(
-            moduleTitle: moduleTitle,
-            difficulty: module['difficulty'],
-            uniqueIds: widget.uniqueIds,
-          ),
+          builder: (context) => VocabularySkillsLevels(),
         ),
       );
     } else {
@@ -340,20 +317,6 @@ class _HomeMenuState extends State<HomeMenu> {
                                           style: GoogleFonts.montserrat(
                                             fontSize: 14,
                                             color: Colors.black,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Difficulty: ${module['difficulty']}',
-                                          style: GoogleFonts.montserrat(
-                                            fontSize: 14,
-                                            color: Colors.black,
-                                          ),
-                                        ),
-                                        Text(
-                                          'Reward: ${module['reward']}',
-                                          style: GoogleFonts.montserrat(
-                                            fontSize: 14,
-                                            color: Colors.lightBlue,
                                           ),
                                         ),
                                       ],

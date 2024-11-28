@@ -2,8 +2,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import '../indevelop.dart';
-import '../quiz/wordprocontent/wordprodifficulty/wordpro_1.dart';
+import '../quiz/wordprocontent/readingcontent_wordpro/readingcontent_wordpro.dart';
 
 class WordPronunciationLevels extends StatefulWidget {
   const WordPronunciationLevels({super.key});
@@ -15,12 +14,12 @@ class WordPronunciationLevels extends StatefulWidget {
 
 class _WordPronunciationLevelsState extends State<WordPronunciationLevels> {
   String userId = '';
-  late String easyId;
-  final String mediumId =
-      'your_medium_unique_id'; // Replace with actual medium ID
-  final String hardId = 'your_hard_unique_id'; // Replace with actual hard ID
+  final String moduleName = 'Word Pronunciation';
+  final String easyId = 'sPB0TBLavMJimWriirGr'; // Unique ID for Easy level
+  final String mediumId = '0gDRHXVKhjGmlDj993DQ'; // Unique ID for Medium level
+  final String hardId = 'DKWdld9O5Iu3yfMkmO00'; // Unique ID for Hard level
 
-  bool isEasyCompleted = false;
+  bool isEasyCompleted = false; // Initialize to false
   bool isMediumCompleted = false;
   bool isHardCompleted = false;
 
@@ -30,96 +29,106 @@ class _WordPronunciationLevelsState extends State<WordPronunciationLevels> {
     _getUserId().then((id) {
       setState(() {
         userId = id;
-        easyId =
-            '$userId-Word Pronunciation-Easy'; // Generate Easy ID dynamically
       });
       _checkCompletionStatus();
     });
   }
 
   Future<void> _checkCompletionStatus() async {
-    await _checkDifficultyStatus(userId, easyId).then((completed) {
-      setState(() {
-        isEasyCompleted = completed; // Track completion for Easy
-      });
-    });
-
-    await _checkDifficultyStatus(userId, mediumId).then((completed) {
-      setState(() {
-        isMediumCompleted = completed; // Track completion for Medium
-      });
-    });
-
-    await _checkDifficultyStatus(userId, hardId).then((completed) {
-      setState(() {
-        isHardCompleted = completed; // Track completion for Hard
-      });
-    });
+    await _fetchDifficultyStatuses();
   }
 
   Future<String> _getUserId() async {
     try {
       var user = FirebaseAuth.instance.currentUser;
-      return user?.uid ??
-          ''; // Return the user ID or an empty string if not found
+      return user?.uid ?? ''; // Return user ID or empty string if not found
     } catch (e) {
-      print('Error fetching user ID: $e');
       return ''; // Default to an empty string
     }
   }
 
-  Future<bool> _checkDifficultyStatus(
-      String userId, String difficultyId) async {
+  Future<void> _fetchDifficultyStatuses() async {
+    try {
+      final statusPromises = [
+        _checkDifficultyStatus('Easy'),
+        _checkDifficultyStatus('Medium'),
+        _checkDifficultyStatus('Hard'),
+      ];
+
+      final statuses = await Future.wait(statusPromises);
+
+      setState(() {
+        isEasyCompleted = statuses[0];
+        isMediumCompleted = statuses[1];
+        isHardCompleted = statuses[2];
+      });
+
+      print(
+          'Easy: $isEasyCompleted, Medium: $isMediumCompleted, Hard: $isHardCompleted');
+    } catch (e) {
+      print('Error fetching difficulty statuses: $e');
+    }
+  }
+
+  Future<bool> _checkDifficultyStatus(String difficulty) async {
+    String uniqueId = '$userId-$moduleName-$difficulty';
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .collection('progress')
-          .doc('Word Pronunciation')
+          .doc(moduleName) // Module document
           .collection('difficulty')
-          .doc(difficultyId)
+          .doc(uniqueId)
           .get();
 
       if (snapshot.exists) {
-        return snapshot['status'] == 'COMPLETED'; // Return completion status
+        return snapshot['status'] ==
+            'COMPLETED'; // Check if status is COMPLETED
       }
     } catch (e) {
-      print('Error checking difficulty status for $difficultyId: $e');
+      print('Error checking difficulty status for $difficulty: $e');
     }
     return false; // Default to not completed
   }
 
-  Future<void> _updateUserProgress() async {
-    String difficultyDocId = easyId; // Use Easy ID for this example
-
+  Future<void> _updateUserProgress(String level) async {
+    String uniqueId = '$userId-$moduleName-$level';
     final docRef = FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
         .collection('progress')
-        .doc('Word Pronunciation')
+        .doc(moduleName) // Module document
         .collection('difficulty')
-        .doc(difficultyDocId);
+        .doc(uniqueId);
 
     try {
       final docSnapshot = await docRef.get();
 
       if (docSnapshot.exists) {
-        await docRef.set({
-          'status': 'COMPLETED',
-          'attempts': FieldValue.increment(1) // Increment attempt count
-        }, SetOptions(merge: true));
+        print('Document already exists for $level, not updating.');
+        return; // If document exists, do not mark as completed again
       } else {
+        // Document does not exist, mark as completed
         await docRef.set({
           'status': 'COMPLETED',
           'attempts': 1 // Initial attempt count
         });
-      }
 
-      // Update completion status for Easy
-      setState(() {
-        isEasyCompleted = true; // Mark Easy as completed
-        isMediumCompleted = true; // Unlock Medium
-      });
+        print('Updated progress for $level. Unique ID: $uniqueId');
+
+        setState(() {
+          if (level == 'Easy') {
+            isEasyCompleted = true;
+            isMediumCompleted = true; // Unlock Medium
+          } else if (level == 'Medium') {
+            isMediumCompleted = true;
+            isHardCompleted = true; // Unlock Hard
+          } else if (level == 'Hard') {
+            isHardCompleted = true;
+          }
+        });
+      }
     } catch (e) {
       print('Error updating document: $e'); // Optional error logging
     }
@@ -166,63 +175,25 @@ class _WordPronunciationLevelsState extends State<WordPronunciationLevels> {
     return ElevatedButton(
       onPressed: isUnlocked
           ? () async {
-              if (level == 'Easy') {
-                // Fetch unique IDs for the Easy level
-                List<String> uniqueIds = await _fetchUniqueIds('Easy');
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => WordProQuiz(
-                      moduleTitle: 'Word Pronunciation',
-                      uniqueIds: uniqueIds, // Pass unique IDs
-                      difficulty: 'Easy', // Pass difficulty level
-                    ),
+              List<String> uniqueIds = await _fetchUniqueIds(level);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReadingContentPageWordPro1(
+                    level: level,
+                    uniqueIds: uniqueIds,
                   ),
-                ).then((result) {
-                  // Handle completion result for Easy level
-                  if (result == true) {
-                    _updateUserProgress(); // Update progress on completion
-                  }
-                });
-              } else if (level == 'Medium') {
-                // Navigate to the Medium content page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DevelopmentScreen(),
-                  ),
-                ).then((result) {
-                  // Handle completion result for Medium level
-                  if (result == true) {
-                    _onLevelCompleted(level);
-                  }
-                });
-              } else if (level == 'Hard') {
-                // Navigate to the Hard content page
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DevelopmentScreen(),
-                  ),
-                ).then((result) {
-                  // Handle completion result for Hard level
-                  if (result == true) {
-                    _onLevelCompleted(level);
-                  }
-                });
-              }
+                ),
+              ).then((result) {
+                if (result == true) {
+                  print('Level $level completed. Updating progress...');
+                  _updateUserProgress(level); // Update progress on completion
+                }
+              });
             }
           : null, // Disable button if locked
       style: ElevatedButton.styleFrom(
-        backgroundColor: isUnlocked
-            ? (level == 'Easy' && isEasyCompleted
-                ? Colors.green
-                : (level == 'Medium' && isMediumCompleted
-                    ? Colors.green
-                    : (level == 'Hard' && isHardCompleted
-                        ? Colors.green
-                        : Colors.blue)))
-            : Colors.grey,
+        backgroundColor: isUnlocked ? Colors.green : Colors.grey,
         padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 25),
       ),
       child: Row(
@@ -246,34 +217,14 @@ class _WordPronunciationLevelsState extends State<WordPronunciationLevels> {
   }
 
   Future<List<String>> _fetchUniqueIds(String difficulty) async {
-    List<String> uniqueIds = [];
-
-    try {
-      var snapshot = await FirebaseFirestore.instance
-          .collection('fields')
-          .doc('Word Pronunciation')
-          .collection(difficulty)
-          .get();
-
-      for (var doc in snapshot.docs) {
-        uniqueIds.add(doc.id);
-      }
-    } catch (e) {
-      print('Error fetching unique IDs for $difficulty: $e');
+    // Return the unique IDs based on difficulty level
+    if (difficulty == 'Easy') {
+      return [easyId];
+    } else if (difficulty == 'Medium') {
+      return [mediumId];
+    } else if (difficulty == 'Hard') {
+      return [hardId];
     }
-
-    return uniqueIds;
-  }
-
-  void _onLevelCompleted(String level) {
-    setState(() {
-      if (level == 'Easy') {
-        isEasyCompleted = true;
-      } else if (level == 'Medium') {
-        isMediumCompleted = true;
-      } else if (level == 'Hard') {
-        isHardCompleted = true;
-      }
-    });
+    return [];
   }
 }

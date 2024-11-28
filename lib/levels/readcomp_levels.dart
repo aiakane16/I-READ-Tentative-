@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../indevelop.dart';
-import '../quiz/readcompcontent/readingcontent_readcomp/readingcontent_easy.dart'; // Import your ReadingContentPage
+import '../quiz/readcompcontent/readingcontent_readcomp/readingcontent_readcomp.dart'; // Import your ReadingContentPage
 
 class ReadingComprehensionLevels extends StatefulWidget {
   const ReadingComprehensionLevels({super.key});
@@ -16,10 +16,10 @@ class ReadingComprehensionLevels extends StatefulWidget {
 class _ReadingComprehensionLevelsState
     extends State<ReadingComprehensionLevels> {
   String userId = '';
-  late String easyId;
-  final String mediumId =
-      'your_medium_unique_id'; // Replace with actual medium ID
-  final String hardId = 'your_hard_unique_id'; // Replace with actual hard ID
+  final String moduleName = 'Reading Comprehension';
+  final String easyId = 'myoLYQD0ML1gWuSI0t1U'; // Unique ID for Easy level
+  final String mediumId = '2jOvLgO48hHIMAwpi1qx'; // Unique ID for Medium level
+  final String hardId = 'JBTrWkZJjYfSSwvQUl9Z'; // Unique ID for Hard level
 
   bool isEasyCompleted = false;
   bool isMediumCompleted = false;
@@ -31,30 +31,13 @@ class _ReadingComprehensionLevelsState
     _getUserId().then((id) {
       setState(() {
         userId = id;
-        easyId = '$userId-Reading Comprehension-Easy'; // Generate easy ID
       });
       _checkCompletionStatus();
     });
   }
 
   Future<void> _checkCompletionStatus() async {
-    await _checkDifficultyStatus(userId, easyId).then((completed) {
-      setState(() {
-        isEasyCompleted = completed;
-      });
-    });
-
-    await _checkDifficultyStatus(userId, mediumId).then((completed) {
-      setState(() {
-        isMediumCompleted = completed;
-      });
-    });
-
-    await _checkDifficultyStatus(userId, hardId).then((completed) {
-      setState(() {
-        isHardCompleted = completed;
-      });
-    });
+    await _fetchDifficultyStatuses();
   }
 
   Future<String> _getUserId() async {
@@ -63,30 +46,91 @@ class _ReadingComprehensionLevelsState
       return user?.uid ??
           ''; // Return the user ID or an empty string if not found
     } catch (e) {
-      print('Error fetching user ID: $e');
       return ''; // Default to an empty string
     }
   }
 
-  Future<bool> _checkDifficultyStatus(
-      String userId, String difficultyId) async {
+  Future<void> _fetchDifficultyStatuses() async {
+    try {
+      final statusPromises = [
+        _checkDifficultyStatus('Easy'),
+        _checkDifficultyStatus('Medium'),
+        _checkDifficultyStatus('Hard'),
+      ];
+
+      final statuses = await Future.wait(statusPromises);
+
+      setState(() {
+        isEasyCompleted = statuses[0];
+        isMediumCompleted = statuses[1];
+        isHardCompleted = statuses[2];
+      });
+    } catch (e) {
+      print('Error fetching difficulty statuses: $e');
+    }
+  }
+
+  Future<bool> _checkDifficultyStatus(String difficulty) async {
+    String uniqueId = '$userId-$moduleName-$difficulty';
     try {
       DocumentSnapshot snapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(userId)
           .collection('progress')
-          .doc('Reading Comprehension')
+          .doc(moduleName) // Module document
           .collection('difficulty')
-          .doc(difficultyId)
+          .doc(uniqueId)
           .get();
 
       if (snapshot.exists) {
-        return snapshot['status'] == 'COMPLETED';
+        return snapshot['status'] ==
+            'COMPLETED'; // Check if status is COMPLETED
       }
     } catch (e) {
-      print('Error checking difficulty status for $difficultyId: $e');
+      // Handle error
     }
     return false; // Default to not completed
+  }
+
+  Future<void> _updateUserProgress(String level) async {
+    String uniqueId = '$userId-$moduleName-$level';
+    final docRef = FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('progress')
+        .doc(moduleName) // Module document
+        .collection('difficulty')
+        .doc(uniqueId);
+
+    try {
+      final docSnapshot = await docRef.get();
+
+      if (docSnapshot.exists) {
+        // If document exists, do not mark as completed again
+        return;
+      } else {
+        // Document does not exist, mark as completed
+        await docRef.set({
+          'status': 'COMPLETED',
+          'attempts': 1 // Initial attempt count
+        });
+
+        // Update completion status for the level
+        setState(() {
+          if (level == 'Easy') {
+            isEasyCompleted = true;
+            isMediumCompleted = true; // Unlock Medium
+          } else if (level == 'Medium') {
+            isMediumCompleted = true;
+            isHardCompleted = true; // Unlock Hard
+          } else if (level == 'Hard') {
+            isHardCompleted = true;
+          }
+        });
+      }
+    } catch (e) {
+      print('Error updating document: $e'); // Optional error logging
+    }
   }
 
   @override
@@ -130,32 +174,22 @@ class _ReadingComprehensionLevelsState
     return ElevatedButton(
       onPressed: isUnlocked
           ? () async {
-              if (level == 'Medium') {
-                // Navigate to the development screen if Medium is clicked
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const DevelopmentScreen(),
+              // Fetch unique IDs for the level
+              List<String> uniqueIds = await _fetchUniqueIds(level);
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ReadingContentPageReadComp1(
+                    level: level,
+                    uniqueIds: uniqueIds,
                   ),
-                );
-              } else {
-                // For Easy and Hard levels
-                List<String> uniqueIds = await _fetchUniqueIds(level);
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ReadingContentPage(
-                      level: level,
-                      uniqueIds: uniqueIds,
-                    ),
-                  ),
-                ).then((result) {
-                  // Assume result is a boolean indicating completion
-                  if (result == true) {
-                    _onLevelCompleted(level);
-                  }
-                });
-              }
+                ),
+              ).then((result) {
+                // Assume result is a boolean indicating completion
+                if (result == true) {
+                  _updateUserProgress(level); // Update progress on completion
+                }
+              });
             }
           : null, // Disable button if locked
       style: ElevatedButton.styleFrom(
@@ -191,34 +225,14 @@ class _ReadingComprehensionLevelsState
   }
 
   Future<List<String>> _fetchUniqueIds(String difficulty) async {
-    List<String> uniqueIds = [];
-
-    try {
-      var snapshot = await FirebaseFirestore.instance
-          .collection('fields')
-          .doc('Reading Comprehension')
-          .collection(difficulty)
-          .get();
-
-      for (var doc in snapshot.docs) {
-        uniqueIds.add(doc.id);
-      }
-    } catch (e) {
-      print('Error fetching unique IDs for $difficulty: $e');
+    // Return the unique IDs based on difficulty level
+    if (difficulty == 'Easy') {
+      return [easyId];
+    } else if (difficulty == 'Medium') {
+      return [mediumId];
+    } else if (difficulty == 'Hard') {
+      return [hardId];
     }
-
-    return uniqueIds;
-  }
-
-  void _onLevelCompleted(String level) {
-    setState(() {
-      if (level == 'Easy') {
-        isEasyCompleted = true;
-      } else if (level == 'Medium') {
-        isMediumCompleted = true;
-      } else if (level == 'Hard') {
-        isHardCompleted = true;
-      }
-    });
+    return [];
   }
 }

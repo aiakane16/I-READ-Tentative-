@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../indevelop.dart';
-import '../quiz/sentcompcontent/sentcomp_1.dart';
+import '../quiz/sentcompcontent/sentcompdifficulty/sentcomp_1.dart';
 
 class SentenceCompositionLevels extends StatefulWidget {
   const SentenceCompositionLevels({super.key});
@@ -15,10 +15,9 @@ class SentenceCompositionLevels extends StatefulWidget {
 
 class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
   String userId = '';
-  late String easyId;
-  final String mediumId =
-      'your_medium_unique_id'; // Replace with actual medium ID
-  final String hardId = 'your_hard_unique_id'; // Replace with actual hard ID
+  final String easyId = 'm91vLaASKnJf23AYwoDj'; // Easy unique ID
+  final String mediumId = 'yVZ7S6Wo5QIOLRF8Npmx'; // Medium unique ID
+  final String hardId = '12HN1FAdEff0Juxv36Bv'; // Hard unique ID
 
   bool isEasyCompleted = false;
   bool isMediumCompleted = false;
@@ -30,8 +29,6 @@ class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
     _getUserId().then((id) {
       setState(() {
         userId = id;
-        easyId =
-            '$userId-Sentence Composition-Easy'; // Generate Easy ID dynamically
       });
       _checkCompletionStatus();
     });
@@ -63,7 +60,6 @@ class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
       return user?.uid ??
           ''; // Return the user ID or an empty string if not found
     } catch (e) {
-      print('Error fetching user ID: $e');
       return ''; // Default to an empty string
     }
   }
@@ -84,21 +80,20 @@ class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
         return snapshot['status'] == 'COMPLETED'; // Return completion status
       }
     } catch (e) {
-      print('Error checking difficulty status for $difficultyId: $e');
+      // Handle error
     }
     return false; // Default to not completed
   }
 
   Future<void> _updateUserProgress() async {
-    String difficultyDocId = easyId; // Use Easy ID for this example
-
+    // Use Easy ID for this example
     final docRef = FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
         .collection('progress')
         .doc('Sentence Composition')
         .collection('difficulty')
-        .doc(difficultyDocId);
+        .doc(easyId);
 
     try {
       final docSnapshot = await docRef.get();
@@ -106,12 +101,12 @@ class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
       if (docSnapshot.exists) {
         await docRef.set({
           'status': 'COMPLETED',
-          'attempts': FieldValue.increment(1) // Increment attempt count
+          'attempts': FieldValue.increment(1), // Increment attempt count
         }, SetOptions(merge: true));
       } else {
         await docRef.set({
           'status': 'COMPLETED',
-          'attempts': 1 // Initial attempt count
+          'attempts': 1, // Initial attempt count
         });
       }
 
@@ -121,7 +116,7 @@ class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
         isMediumCompleted = true; // Unlock Medium
       });
     } catch (e) {
-      print('Error updating document: $e'); // Optional error logging
+      // Handle error
     }
   }
 
@@ -246,23 +241,17 @@ class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
   }
 
   Future<List<String>> _fetchUniqueIds(String difficulty) async {
-    List<String> uniqueIds = [];
-
-    try {
-      var snapshot = await FirebaseFirestore.instance
-          .collection('fields')
-          .doc('Sentence Composition')
-          .collection(difficulty)
-          .get();
-
-      for (var doc in snapshot.docs) {
-        uniqueIds.add(doc.id);
-      }
-    } catch (e) {
-      print('Error fetching unique IDs for $difficulty: $e');
+    // Return the unique IDs based on difficulty level
+    switch (difficulty) {
+      case 'Easy':
+        return [easyId];
+      case 'Medium':
+        return [mediumId];
+      case 'Hard':
+        return [hardId];
+      default:
+        return [];
     }
-
-    return uniqueIds;
   }
 
   void _onLevelCompleted(String level) {

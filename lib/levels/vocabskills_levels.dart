@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../indevelop.dart';
-import '../quiz/vocabskillcontent/vocabskill_1.dart';
+import '../quiz/vocabskillcontent/vocabskilldifficulty/vocabskill_1.dart';
 
 class VocabularySkillsLevels extends StatefulWidget {
   const VocabularySkillsLevels({super.key});
@@ -14,10 +14,9 @@ class VocabularySkillsLevels extends StatefulWidget {
 
 class _VocabularySkillsLevelsState extends State<VocabularySkillsLevels> {
   String userId = '';
-  late String easyId;
-  final String mediumId =
-      'your_medium_unique_id'; // Replace with actual medium ID
-  final String hardId = 'your_hard_unique_id'; // Replace with actual hard ID
+  final String easyId = 'sOOI4k8t4pzArVZkKG3f'; // Easy unique ID
+  final String mediumId = 'JeGtBN3k2Ni4LAVAY2z7'; // Medium unique ID
+  final String hardId = '7bdxc9Mr3F46ywnt7mRt'; // Hard unique ID
 
   bool isEasyCompleted = false;
   bool isMediumCompleted = false;
@@ -29,8 +28,6 @@ class _VocabularySkillsLevelsState extends State<VocabularySkillsLevels> {
     _getUserId().then((id) {
       setState(() {
         userId = id;
-        easyId =
-            '$userId-Vocabulary Skills-Easy'; // Generate Easy ID dynamically
       });
       _checkCompletionStatus();
     });
@@ -89,15 +86,13 @@ class _VocabularySkillsLevelsState extends State<VocabularySkillsLevels> {
   }
 
   Future<void> _updateUserProgress() async {
-    String difficultyDocId = easyId; // Use Easy ID for this example
-
     final docRef = FirebaseFirestore.instance
         .collection('users')
         .doc(userId)
         .collection('progress')
         .doc('Vocabulary Skills')
         .collection('difficulty')
-        .doc(difficultyDocId);
+        .doc(easyId); // Use Easy ID for this example
 
     try {
       final docSnapshot = await docRef.get();
@@ -245,23 +240,17 @@ class _VocabularySkillsLevelsState extends State<VocabularySkillsLevels> {
   }
 
   Future<List<String>> _fetchUniqueIds(String difficulty) async {
-    List<String> uniqueIds = [];
-
-    try {
-      var snapshot = await FirebaseFirestore.instance
-          .collection('fields')
-          .doc('Vocabulary Skills')
-          .collection(difficulty)
-          .get();
-
-      for (var doc in snapshot.docs) {
-        uniqueIds.add(doc.id);
-      }
-    } catch (e) {
-      print('Error fetching unique IDs for $difficulty: $e');
+    // Return the unique IDs based on difficulty level
+    switch (difficulty) {
+      case 'Easy':
+        return [easyId];
+      case 'Medium':
+        return [mediumId];
+      case 'Hard':
+        return [hardId];
+      default:
+        return [];
     }
-
-    return uniqueIds;
   }
 
   void _onLevelCompleted(String level) {

@@ -80,7 +80,7 @@ class _ModulesMenuState extends State<ModulesMenu> {
           .collection('users')
           .doc(userId)
           .collection('progress')
-          .doc(module)
+          .doc(module) // Ensure module name matches Firestore
           .get();
 
       if (moduleDoc.exists) {
@@ -123,6 +123,23 @@ class _ModulesMenuState extends State<ModulesMenu> {
                 (completedDifficultiesCountMap[moduleTitle] ?? 0) + 1;
           }
         }
+      }
+
+      // Update the module status based on difficulty completion
+      if (completedDifficultiesCountMap[moduleTitle] == 1) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('progress')
+            .doc(moduleTitle)
+            .update({'status': 'IN PROGRESS'});
+      } else if (completedDifficultiesCountMap[moduleTitle] == 3) {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(userId)
+            .collection('progress')
+            .doc(moduleTitle)
+            .update({'status': 'COMPLETED'});
       }
     }
   }
@@ -201,24 +218,14 @@ class _ModulesMenuState extends State<ModulesMenu> {
                                     currentModule,
                                     style: GoogleFonts.montserrat(
                                         fontWeight: FontWeight.bold,
-                                        fontSize: 18,
+                                        fontSize: 22, // Increased font size
                                         color: Colors.blue),
                                   ),
                                   const SizedBox(height: 5),
                                   Text(
                                     'Status: ${moduleStatuses[index]}',
                                     style: GoogleFonts.montserrat(
-                                        fontSize: 14, color: Colors.black),
-                                  ),
-                                  Text(
-                                    'Difficulty: EASY',
-                                    style: GoogleFonts.montserrat(
-                                        fontSize: 14, color: Colors.black),
-                                  ),
-                                  Text(
-                                    'Reward: 500 XP',
-                                    style: GoogleFonts.montserrat(
-                                        fontSize: 14, color: Colors.lightBlue),
+                                        fontSize: 16, color: Colors.black),
                                   ),
                                   const SizedBox(height: 5),
                                   LinearProgressIndicator(

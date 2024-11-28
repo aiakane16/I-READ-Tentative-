@@ -11,7 +11,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Under Development',
+      title: 'Development Screen',
       theme: ThemeData(
         primarySwatch: Colors.blue,
       ),
@@ -49,15 +49,15 @@ class DevelopmentScreen extends StatelessWidget {
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
-                  textAlign: TextAlign.center, // Center text alignment
+                  textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 40), // Space between text and button
+                const SizedBox(height: 40),
                 ElevatedButton(
                   onPressed: () {
                     Navigator.pop(context); // Go back to the previous screen
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.blue, // Button background color
+                    backgroundColor: Colors.blue,
                     padding: const EdgeInsets.symmetric(
                         horizontal: 40, vertical: 15),
                   ),

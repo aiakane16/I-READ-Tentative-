@@ -40,8 +40,9 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
   int mistakes = 0;
   List<Question> questions = [];
   bool isLoading = true;
-  int selectedAnswerIndex = -1;
   bool isAnswerSubmitted = false;
+  bool hasEarnedXP = false; // Track if XP has been earned
+  int selectedAnswerIndex = -1; // Track the selected answer index
 
   Question? currentQuestion;
   int currentQuestionIndex = 0;
@@ -75,13 +76,10 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
 
         if (querySnapshot.exists) {
           final data = querySnapshot.data();
-
           if (data != null && data['modules'] != null) {
             var modulesData = data['modules'] as List<dynamic>;
-
             if (modulesData.isNotEmpty) {
               var questionsData = modulesData[0]['questions'] as List<dynamic>;
-
               for (var questionData in questionsData) {
                 var question = Question(
                   questionText: questionData['question'],
@@ -93,6 +91,8 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
               }
             }
           }
+        } else {
+          _showErrorDialog('No unique IDs available.');
         }
       } else {
         _showErrorDialog('No unique IDs available.');
@@ -124,7 +124,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
   }
 
   void _submitAnswer() {
-    if (!isAnswerSubmitted && selectedAnswerIndex != -1) {
+    if (!isAnswerSubmitted) {
       final correctAnswer = questions[currentQuestionIndex].correctAnswer;
 
       if (questions[currentQuestionIndex].options[selectedAnswerIndex] ==
@@ -165,6 +165,21 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
     });
 
     String userId = FirebaseAuth.instance.currentUser!.uid;
+    String difficultyDocId =
+        '$userId-Reading Comprehension-${widget.difficulty}'; // Unique ID for the difficulty document
+
+    // Check if the status is already COMPLETED
+    DocumentSnapshot difficultyDoc = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(userId)
+        .collection('progress')
+        .doc(widget.moduleTitle)
+        .collection('difficulty')
+        .doc(difficultyDocId)
+        .get();
+
+    bool isCompleted = difficultyDoc.exists &&
+        (difficultyDoc.data() as Map<String, dynamic>)['status'] == 'COMPLETED';
 
     // Update the existing difficulty document instead of the module
     await FirebaseFirestore.instance
@@ -173,18 +188,21 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
         .collection('progress')
         .doc(widget.moduleTitle)
         .collection('difficulty')
-        .doc(
-            '$userId-Reading Comprehension-${widget.difficulty}') // Dynamic unique ID
+        .doc(difficultyDocId)
         .set({
       'status': 'COMPLETED', // Mark as completed
       'mistakes': mistakes, // Add mistakes
       'time': 0, // Replace 0 with actual time taken if available
     }, SetOptions(merge: true));
 
-    // Update XP
-    await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'xp': FieldValue.increment(500),
-    });
+    // Check if user has already earned XP
+    if (!hasEarnedXP && !isCompleted) {
+      // Update XP
+      await FirebaseFirestore.instance.collection('users').doc(userId).update({
+        'xp': FieldValue.increment(500),
+      });
+      hasEarnedXP = true; // Set to true to prevent re-earning XP
+    }
 
     // Add to completed modules (optional, can be removed if not needed)
     await FirebaseFirestore.instance.collection('users').doc(userId).update({
@@ -207,7 +225,7 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
                 GoogleFonts.montserrat(color: Colors.white), // White text color
           ),
           content: Text(
-            'Score: $score/${questions.length}\nMistakes: $mistakes\nXP Earned: 500',
+            'Score: $score/${questions.length}\nMistakes: $mistakes\nXP Earned: ${hasEarnedXP ? 500 : 0}',
             style:
                 GoogleFonts.montserrat(color: Colors.white), // White text color
           ),
