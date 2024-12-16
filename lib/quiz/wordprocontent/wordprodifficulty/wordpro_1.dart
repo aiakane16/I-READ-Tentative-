@@ -83,7 +83,6 @@ class _WordProQuizState extends State<WordProQuiz> {
               element.category == 'Word Pronunciation')
           .last;
       List<Question> moduleQuestions = module.questionsPerModule;
-      print(module.title);
       setState(() {
         questions = moduleQuestions;
         isLoading = false;

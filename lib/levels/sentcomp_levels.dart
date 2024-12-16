@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:i_read_app/models/module.dart';
+import 'package:i_read_app/services/storage.dart';
 import '../indevelop.dart';
 import '../quiz/sentcompcontent/sentcompdifficulty/sentcomp_1.dart';
 
@@ -22,102 +24,26 @@ class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
   bool isEasyCompleted = false;
   bool isMediumCompleted = false;
   bool isHardCompleted = false;
+  StorageService storageService = StorageService();
 
   @override
   void initState() {
     super.initState();
-    _getUserId().then((id) {
-      setState(() {
-        userId = id;
-      });
-      _checkCompletionStatus();
-    });
+    _checkCompletionStatus();
+
   }
 
   Future<void> _checkCompletionStatus() async {
-    await _checkDifficultyStatus(userId, easyId).then((completed) {
-      setState(() {
-        isEasyCompleted = completed; // Track completion for Easy
-      });
+    List<Module> modules = await storageService.getModules();
+    Module easyModule = modules.where((element) => element.difficulty == 'Easy' && element.category == 'Sentence Composition').last;
+    Module mediumModule = modules.where((element) => element.difficulty == 'Medium' && element.category == 'Sentence Composition').last;
+    Module hardModule = modules.where((element) => element.difficulty == 'Hard' && element.category == 'Sentence Composition').last;
+
+    setState(() {
+      isEasyCompleted = !easyModule.isLocked; // Track completion for Easy
+      isMediumCompleted = !mediumModule.isLocked; 
+      isHardCompleted = !hardModule.isLocked; // Track completion for Hard
     });
-
-    await _checkDifficultyStatus(userId, mediumId).then((completed) {
-      setState(() {
-        isMediumCompleted = completed; // Track completion for Medium
-      });
-    });
-
-    await _checkDifficultyStatus(userId, hardId).then((completed) {
-      setState(() {
-        isHardCompleted = completed; // Track completion for Hard
-      });
-    });
-  }
-
-  Future<String> _getUserId() async {
-    try {
-      var user = FirebaseAuth.instance.currentUser;
-      return user?.uid ??
-          ''; // Return the user ID or an empty string if not found
-    } catch (e) {
-      return ''; // Default to an empty string
-    }
-  }
-
-  Future<bool> _checkDifficultyStatus(
-      String userId, String difficultyId) async {
-    try {
-      DocumentSnapshot snapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .collection('progress')
-          .doc('Sentence Composition')
-          .collection('difficulty')
-          .doc(difficultyId)
-          .get();
-
-      if (snapshot.exists) {
-        return snapshot['status'] == 'COMPLETED'; // Return completion status
-      }
-    } catch (e) {
-      // Handle error
-    }
-    return false; // Default to not completed
-  }
-
-  Future<void> _updateUserProgress() async {
-    // Use Easy ID for this example
-    final docRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('progress')
-        .doc('Sentence Composition')
-        .collection('difficulty')
-        .doc(easyId);
-
-    try {
-      final docSnapshot = await docRef.get();
-
-      if (docSnapshot.exists) {
-        await docRef.set({
-          'status': 'COMPLETED',
-          'attempts': FieldValue.increment(1), // Increment attempt count
-        }, SetOptions(merge: true));
-      } else {
-        await docRef.set({
-          'status': 'COMPLETED',
-          'attempts': 1, // Initial attempt count
-        });
-      }
-
-      // Update completion status for Easy
-      setState(() {
-        isEasyCompleted = true; // Mark Easy as completed
-        isMediumCompleted = true; // Unlock Medium
-      });
-    } catch (e) {
-      // Handle error
-    }
   }
 
   @override
@@ -168,7 +94,7 @@ class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
                   context,
                   MaterialPageRoute(
                     builder: (context) => SentCompQuiz(
-                      moduleTitle: 'Sentence Composition',
+                      title: 'Sentence Composition',
                       uniqueIds: uniqueIds, // Pass unique IDs
                       difficulty: 'Easy', // Pass difficulty level
                     ),
@@ -176,7 +102,7 @@ class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
                 ).then((result) {
                   // Handle completion result for Easy level
                   if (result == true) {
-                    _updateUserProgress(); // Update progress on completion
+                    // _updateUserProgress(); // Update progress on completion
                   }
                 });
               } else if (level == 'Medium') {
@@ -189,7 +115,7 @@ class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
                 ).then((result) {
                   // Handle completion result for Medium level
                   if (result == true) {
-                    _onLevelCompleted(level);
+                    // _onLevelCompleted(level);
                   }
                 });
               } else if (level == 'Hard') {
@@ -202,7 +128,7 @@ class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
                 ).then((result) {
                   // Handle completion result for Hard level
                   if (result == true) {
-                    _onLevelCompleted(level);
+                    // _onLevelCompleted(level);
                   }
                 });
               }
@@ -252,17 +178,5 @@ class _SentenceCompositionLevelsState extends State<SentenceCompositionLevels> {
       default:
         return [];
     }
-  }
-
-  void _onLevelCompleted(String level) {
-    setState(() {
-      if (level == 'Easy') {
-        isEasyCompleted = true;
-      } else if (level == 'Medium') {
-        isMediumCompleted = true;
-      } else if (level == 'Hard') {
-        isHardCompleted = true;
-      }
-    });
   }
 }

@@ -52,10 +52,9 @@ class _ModulesMenuState extends State<ModulesMenu> {
     if (!fetchedModules.contains('Vocabulary Skills')) {
       fetchedModules.add('Vocabulary Skills');
     }
-    // if (!fetchedModules.contains('Sentence Composition')) {
-    //   fetchedModules.add('Sentence Composition');
-    // }
-    fetchedModules.remove('Sentence Composition');
+    if (!fetchedModules.contains('Sentence Composition')) {
+      fetchedModules.add('Sentence Composition');
+    }
     // await _fetchModuleStatuses(fetchedModules);
     // await _fetchDifficultyCompletion();
 

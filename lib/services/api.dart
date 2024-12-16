@@ -136,6 +136,32 @@ class ApiService {
     }
   }
 
+  Future<Map<String,dynamic>> getQuestionAnswer(String questionId) async {
+    try {
+      String? accessToken = await getStoredAccessToken();
+      // Request body
+      Map<String, String> requestHeader = {
+        "Content-Type": 'application/json',
+        "Authorization": 'Bearer ${accessToken}',
+      };
+
+      var url =
+          Uri.parse('${Constants.baseUrl}/api/questions/${questionId}');
+      var response = await http.get(url, headers: requestHeader);
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        return data['answer'];
+      } else {
+        log('Failed to retrieve questions. Status code: ${response.statusCode}');
+        throw 'Failed to retrieve questions. Status code: ${response.statusCode}';
+      }
+    } catch (e) {
+      log(e.toString());
+      throw e.toString();
+    }
+  }
+
   // Retrieve token from secure storage
   Future<String?> getStoredAccessToken() async {
     return await _secureStorage.read(key: 'accessToken');
@@ -165,7 +191,7 @@ class ApiService {
       var url = Uri.parse('${Constants.baseUrl}/api/modules/$moduleId/answer');
       var response = await http.post(url,
           headers: requestHeader, body: jsonEncode(requestBody));
-
+      print(jsonDecode(response.body));
       if (response.statusCode == 200) {
         Map<String, dynamic> data = jsonDecode(response.body);
         return data;

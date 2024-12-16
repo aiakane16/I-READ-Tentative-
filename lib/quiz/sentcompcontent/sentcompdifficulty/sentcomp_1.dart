@@ -3,13 +3,21 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/gestures.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:i_read_app/models/answer.dart';
+import 'package:i_read_app/models/module.dart';
+import 'package:i_read_app/models/question.dart';
+import 'package:i_read_app/services/api.dart';
+import 'package:i_read_app/services/storage.dart';
 
 class SentCompQuiz extends StatefulWidget {
+  final String difficulty; // Add this field
+  final String title; // Add this field
+
   const SentCompQuiz(
       {super.key,
-      required String moduleTitle,
+      required this.title,
       required List<String> uniqueIds,
-      required String difficulty});
+      required this.difficulty});
 
   @override
   _SentenceCompositionQuizState createState() =>
@@ -17,7 +25,7 @@ class SentCompQuiz extends StatefulWidget {
 }
 
 class _SentenceCompositionQuizState extends State<SentCompQuiz> {
-  List<Map<String, dynamic>> questions = [];
+  List<Question> questions = [];
   int currentQuestionIndex = 0;
   List<String> options = [];
   String correctAnswer = '';
@@ -26,6 +34,11 @@ class _SentenceCompositionQuizState extends State<SentCompQuiz> {
   bool hasSubmittedCurrentQuestion = false;
   bool _isCorrect = false;
   String _feedbackMessage = '';
+  StorageService storageService = StorageService();
+  ApiService apiService = ApiService();
+  String moduleId = '';
+  String moduleTitle = '';
+  List<Answer> answers = [];
 
   @override
   void initState() {
@@ -35,46 +48,29 @@ class _SentenceCompositionQuizState extends State<SentCompQuiz> {
 
   Future<void> fetchQuestions() async {
     try {
-      // Update the path to match the new Firestore structure
-      var snapshot = await FirebaseFirestore.instance
-          .collection('fields')
-          .doc('Sentence Composition') // Field Document
-          .collection('Easy') // Difficulty Collection
-          .doc('m91vLaASKnJf23AYwoDj') // Module Document
-          .get();
+      List<Module> modules = await storageService.getModules();
+      Module module = modules
+          .where((element) =>
+              element.difficulty == widget.difficulty &&
+              element.category == 'Sentence Composition')
+          .last;
+      List<Question> moduleQuestions = module.questionsPerModule;
 
-      if (snapshot.exists) {
-        var modules = snapshot.data()?['modules'] as List<dynamic>? ?? [];
-        if (modules.isNotEmpty) {
-          var questionsData = modules[0]['questions'] as List<dynamic>? ?? [];
-          for (var question in questionsData) {
-            var blanks = question['blanks'];
-            var correctAnswer = question['correctAnswer'];
-            var options = List<String>.from(
-                question['options'].map((option) => option.toString()));
+      setState(() {
+        questions = moduleQuestions;
+        moduleId = module.id;
+        moduleTitle = module.title;
+      });
 
-            questions.add({
-              'blanks': blanks,
-              'correctAnswer': correctAnswer,
-              'options': options,
-            });
-          }
-
-          if (questions.isNotEmpty) {
-            setState(() {
-              currentQuestionIndex = 0;
-              correctAnswer =
-                  questions[currentQuestionIndex]['correctAnswer'].trim();
-              options = List.from(questions[currentQuestionIndex]['options']);
-              sentenceWithBlanks = questions[currentQuestionIndex]['blanks'];
-              userSelections =
-                  List.filled(sentenceWithBlanks.split(' ').length, '');
-            });
-          }
-        }
-      } else {
-        print('Document does not exist');
-      }
+      setState(() {
+        currentQuestionIndex = 0;
+        options =
+            List.from(questions[currentQuestionIndex].choices.map((choice) {
+          return choice.text;
+        }));
+        sentenceWithBlanks = questions[currentQuestionIndex].text;
+        userSelections = List.filled(sentenceWithBlanks.split(' ').length, '');
+      });
     } catch (e) {
       print('Error fetching questions: $e');
     }
@@ -106,11 +102,16 @@ class _SentenceCompositionQuizState extends State<SentCompQuiz> {
     }
   }
 
-  void submitAnswer() {
+  void submitAnswer() async {
+    Map<String, dynamic> answer =
+        await apiService.getQuestionAnswer(questions[currentQuestionIndex].id);
+    String originalAnswer = '';
+
     setState(() {
       hasSubmittedCurrentQuestion = true;
       String userAnswer = '';
       List<String> wordsInBlanks = sentenceWithBlanks.split(' ');
+      correctAnswer = answer['text'];
 
       for (int i = 0; i < wordsInBlanks.length; i++) {
         if (wordsInBlanks[i] == '___') {
@@ -119,10 +120,9 @@ class _SentenceCompositionQuizState extends State<SentCompQuiz> {
           userAnswer += '${wordsInBlanks[i]} ';
         }
       }
-
-      userAnswer = userAnswer.trim();
-
-      if (userAnswer.toLowerCase() == correctAnswer.toLowerCase()) {
+      originalAnswer = userAnswer;
+      if (userAnswer.trim().toLowerCase() ==
+          answer['text'].toString().trim().toLowerCase()) {
         _isCorrect = true;
         _feedbackMessage = 'You are correct.';
       } else {
@@ -130,34 +130,14 @@ class _SentenceCompositionQuizState extends State<SentCompQuiz> {
         _feedbackMessage = 'Not quite correct.';
       }
     });
+
+    Answer userAnswer = Answer(
+        questionId: questions[currentQuestionIndex].id, answer: originalAnswer);
+    answers.add(userAnswer);
   }
 
   Future<void> submitQuiz() async {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-
-    // Update user's progress in the users collection
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('progress')
-        .doc('Sentence Composition') // Module document
-        .collection('difficulty') // Difficulty collection
-        .doc('$userId-Sentence Composition-Easy') // Specific document
-        .set({
-      'status': 'COMPLETED',
-    }, SetOptions(merge: true));
-
-    // Update user XP in the users collection
-    await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'xp': FieldValue.increment(500),
-    });
-
-    // Add module to completedModules
-    await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'completedModules': FieldValue.arrayUnion(['Sentence Composition']),
-    });
-
-    // Navigate to modules_menu
+    await apiService.postSubmitModuleAnswer(moduleId, answers);
     Navigator.pushReplacementNamed(context, '/modules_menu');
   }
 
@@ -165,9 +145,11 @@ class _SentenceCompositionQuizState extends State<SentCompQuiz> {
     if (currentQuestionIndex < questions.length - 1) {
       setState(() {
         currentQuestionIndex++;
-        correctAnswer = questions[currentQuestionIndex]['correctAnswer'].trim();
-        options = List.from(questions[currentQuestionIndex]['options']);
-        sentenceWithBlanks = questions[currentQuestionIndex]['blanks'];
+        options =
+            List.from(questions[currentQuestionIndex].choices.map((choice) {
+          return choice.text;
+        }));
+        sentenceWithBlanks = questions[currentQuestionIndex].text;
         userSelections = List.filled(sentenceWithBlanks.split(' ').length, '');
         hasSubmittedCurrentQuestion = false;
         _isCorrect = false;

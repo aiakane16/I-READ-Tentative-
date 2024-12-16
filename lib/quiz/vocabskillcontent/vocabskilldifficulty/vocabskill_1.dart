@@ -51,7 +51,7 @@ class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
     try {
       List<Module> modules = await storageService.getModules();
       Module module =
-          modules.where((element) => element.difficulty == widget.difficulty && element.category == 'Vocabulary Skills' ).first;
+          modules.where((element) => element.difficulty == widget.difficulty && element.category == 'Vocabulary Skills' ).last;
       List<Question> moduleQuestions = module.questionsPerModule;
 
       setState(() {
