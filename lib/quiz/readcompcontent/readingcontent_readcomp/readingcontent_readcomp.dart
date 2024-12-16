@@ -4,12 +4,14 @@ import '../readcompdifficulty/readcomp_1.dart';
 
 class ReadingContentPageReadComp1 extends StatelessWidget {
   final String level;
+  final String title;
   final List<String> uniqueIds;
 
   const ReadingContentPageReadComp1({
     super.key,
     required this.level,
     required this.uniqueIds,
+    required this.title,
   });
 
   @override
@@ -45,7 +47,7 @@ class ReadingContentPageReadComp1 extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Topic Title',
+                title,
                 style: GoogleFonts.montserrat(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,

@@ -1,9 +1,14 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:i_read_app/levels/sentcomp_levels.dart';
 import 'package:i_read_app/levels/vocabskills_levels.dart';
+import 'package:i_read_app/models/module.dart';
+import 'package:i_read_app/services/storage.dart';
 import '../levels/readcomp_levels.dart'; // Import for Reading Comprehension
 import '../levels/wordpro_levels.dart'; // Import for Word Pronunciation
 
@@ -23,6 +28,7 @@ class _ModulesMenuState extends State<ModulesMenu> {
   List<int> moduleTotal = [];
   Map<String, int> completedDifficultiesCountMap = {};
   bool isLoading = true;
+  StorageService storageService = StorageService();
 
   @override
   void initState() {
@@ -31,44 +37,35 @@ class _ModulesMenuState extends State<ModulesMenu> {
   }
 
   Future<void> _loadModules() async {
-    try {
-      var fieldDocs =
-          await FirebaseFirestore.instance.collection('fields').get();
-      List<String> fetchedModules = [];
+    List<Module> storedModules = await storageService.getModules();
+    List<String> fetchedModules = [];
 
-      for (var fieldDoc in fieldDocs.docs) {
-        var modulesData = fieldDoc.data()['modules'] as List<dynamic>? ?? [];
-        fetchedModules
-            .addAll(modulesData.map((module) => module['title'] as String));
-      }
+    fetchedModules.addAll(storedModules.map((module) => module.category).toSet());
 
-      // Ensure all modules are included
-      if (!fetchedModules.contains('Reading Comprehension')) {
-        fetchedModules.add('Reading Comprehension');
-      }
-      if (!fetchedModules.contains('Word Pronunciation')) {
-        fetchedModules.add('Word Pronunciation');
-      }
-      if (!fetchedModules.contains('Vocabulary Skills')) {
-        fetchedModules.add('Vocabulary Skills');
-      }
-      if (!fetchedModules.contains('Sentence Composition')) {
-        fetchedModules.add('Sentence Composition');
-      }
-
-      await _fetchModuleStatuses(fetchedModules);
-      await _fetchDifficultyCompletion();
-
-      moduleCompleted = List.filled(fetchedModules.length, 0);
-      moduleTotal = List.filled(fetchedModules.length, 3);
-
-      setState(() {
-        modules = fetchedModules;
-        isLoading = false;
-      });
-    } catch (e) {
-      _showErrorDialog('Error loading modules: $e');
+    // Ensure all modules are included
+    if (!fetchedModules.contains('Reading Comprehension')) {
+      fetchedModules.add('Reading Comprehension');
     }
+    if (!fetchedModules.contains('Word Pronunciation')) {
+      fetchedModules.add('Word Pronunciation');
+    }
+    if (!fetchedModules.contains('Vocabulary Skills')) {
+      fetchedModules.add('Vocabulary Skills');
+    }
+    // if (!fetchedModules.contains('Sentence Composition')) {
+    //   fetchedModules.add('Sentence Composition');
+    // }
+    fetchedModules.remove('Sentence Composition');
+    // await _fetchModuleStatuses(fetchedModules);
+    // await _fetchDifficultyCompletion();
+
+    // moduleCompleted = List.filled(fetchedModules.length, 0);
+    // moduleTotal = List.filled(fetchedModules.length, 3);
+
+    setState(() {
+      modules = fetchedModules;
+      isLoading = false;
+    });
   }
 
   Future<void> _fetchModuleStatuses(List<String> fetchedModules) async {
@@ -205,8 +202,8 @@ class _ModulesMenuState extends State<ModulesMenu> {
                         itemCount: modules.length,
                         itemBuilder: (context, index) {
                           String currentModule = modules[index];
-                          int completedCount =
-                              completedDifficultiesCountMap[currentModule] ?? 0;
+                          // int completedCount =
+                          //     completedDifficultiesCountMap[currentModule] ?? 0;
 
                           return Card(
                             margin: const EdgeInsets.symmetric(vertical: 10),
@@ -223,19 +220,19 @@ class _ModulesMenuState extends State<ModulesMenu> {
                                   ),
                                   const SizedBox(height: 5),
                                   Text(
-                                    'Status: ${moduleStatuses[index]}',
+                                    'Status: In progress',
                                     style: GoogleFonts.montserrat(
                                         fontSize: 16, color: Colors.black),
                                   ),
                                   const SizedBox(height: 5),
                                   LinearProgressIndicator(
-                                    value: completedCount / 3.0,
+                                    value: 1 / 3.0,
                                     backgroundColor: Colors.grey[300],
                                     color: Colors.green,
                                   ),
                                   const SizedBox(height: 5),
                                   Text(
-                                    '$completedCount / 3 completed',
+                                    '1 / 3 completed',
                                     style: GoogleFonts.montserrat(),
                                   ),
                                 ],

@@ -3,6 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:i_read_app/models/user.dart';
+import 'package:i_read_app/services/api.dart';
+import 'package:i_read_app/services/storage.dart';
 import '../help.dart';
 import '../levels/readcomp_levels.dart';
 import '../levels/sentcomp_levels.dart';
@@ -20,39 +23,20 @@ class HomeMenu extends StatefulWidget {
 }
 
 class _HomeMenuState extends State<HomeMenu> {
-  String nickname = '';
-  int xp = 0;
-  List<String> completedModules = [];
+  List<CompletedModule>? completedModules = [];
   List<Map<String, dynamic>> allModules = [];
+  ApiService apiService = ApiService();
+  StorageService storageService = StorageService();
 
   @override
   void initState() {
     super.initState();
-    _loadUserData();
-    _loadAllModules();
+    // _loadUserData();
+    // _loadAllModules();
   }
 
-  Stream<DocumentSnapshot> _fetchUserStats() {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-    return FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .snapshots();
-  }
-
-  Future<void> _loadUserData() async {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-    var userDoc =
-        await FirebaseFirestore.instance.collection('users').doc(userId).get();
-
-    if (userDoc.exists) {
-      nickname = userDoc.data()?['username'] ?? 'User';
-      xp = userDoc.data()?['xp'] ?? 0;
-      completedModules =
-          List<String>.from(userDoc.data()?['completedModules'] ?? []);
-    } else {
-      print('User document does not exist');
-    }
+  Future<UserProfile?> _fetchUserStats()  {
+    return storageService.getUserProfile();
   }
 
   Future<void> _loadAllModules() async {
@@ -190,17 +174,15 @@ class _HomeMenuState extends State<HomeMenu> {
         return true; // Exit the app when back is pressed
       },
       child: Scaffold(
-        body: StreamBuilder<DocumentSnapshot>(
-          stream: _fetchUserStats(),
+        body: FutureBuilder<UserProfile?>(
+          future: _fetchUserStats(),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
               return Center(child: Text('Error: ${snapshot.error}'));
-            } else if (snapshot.hasData && snapshot.data!.exists) {
-              final data = snapshot.data!.data() as Map<String, dynamic>;
-              nickname = data['username'] ?? 'User';
-              xp = data['xp'] ?? 0;
+            } else if (snapshot.hasData) {
+              final data = snapshot.data;
 
               return Container(
                 decoration: BoxDecoration(
@@ -222,7 +204,7 @@ class _HomeMenuState extends State<HomeMenu> {
                         Padding(
                           padding: const EdgeInsets.only(top: 10.0),
                           child: Text(
-                            'Welcome, $nickname!',
+                            'Welcome, ${data?.firstName}!',
                             style: GoogleFonts.montserrat(
                               fontSize: width * 0.06,
                               color: Colors.white,
@@ -259,14 +241,14 @@ class _HomeMenuState extends State<HomeMenu> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Ranking: #1/4',
+                          Text('Ranking: ${data?.rank}',
                               style:
                                   GoogleFonts.montserrat(color: Colors.white)),
-                          Text('XP Earned: $xp',
+                          Text('XP Earned: ${data?.experience}',
                               style:
                                   GoogleFonts.montserrat(color: Colors.white)),
                           Text(
-                            'Modules Completed: ${completedModules.length}/4',
+                            'Modules Completed: ${data?.completedModules.length}',
                             style: GoogleFonts.montserrat(color: Colors.white),
                           ),
                         ],

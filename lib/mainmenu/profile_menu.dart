@@ -2,6 +2,10 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:i_read_app/models/module.dart';
+import 'package:i_read_app/models/user.dart';
+import 'package:i_read_app/services/api.dart';
+import 'package:i_read_app/services/storage.dart';
 
 class ProfileMenu extends StatefulWidget {
   const ProfileMenu({super.key});
@@ -11,11 +15,16 @@ class ProfileMenu extends StatefulWidget {
 }
 
 class _ProfileMenuState extends State<ProfileMenu> {
-  int xp = 0;
-  int completedModules = 0;
+  int? xp = 0;
+  int? completedModules = 0;
+  int? totalModules = 0;
   String fullName = ''; // Declare fullName
   String strand = ''; // Declare strand
   String schoolName = 'Tanauan School of Fisheries'; // Declare school name
+  String rank = 'Unranked'; // Declare school name
+  List<CompletedModule>? completedModuelsList = [];
+  ApiService apiService = ApiService();
+  StorageService storageService = StorageService();
 
   @override
   void initState() {
@@ -24,27 +33,17 @@ class _ProfileMenuState extends State<ProfileMenu> {
   }
 
   Future<void> fetchUserData() async {
-    try {
-      String userId = FirebaseAuth.instance.currentUser!.uid;
-      final userSnapshot = await FirebaseFirestore.instance
-          .collection('users')
-          .doc(userId)
-          .get();
-
-      if (userSnapshot.exists) {
-        setState(() {
-          xp = userSnapshot.get('xp') ?? 0;
-          completedModules =
-              (userSnapshot.get('completedModules') as List).length;
-          fullName =
-              userSnapshot.get('fullName') ?? 'Unknown User'; // Fetch full name
-          strand =
-              userSnapshot.get('strand') ?? 'Unknown Strand'; // Fetch strand
-        });
-      }
-    } catch (e) {
-      print('Error fetching user data: $e');
-    }
+    UserProfile? userProfile = await storageService.getUserProfile();
+    List<Module> moduleList = await storageService.getModules();
+    setState(() {
+      fullName = '${userProfile?.firstName} ${userProfile?.lastName}';
+      xp = userProfile?.experience;
+      completedModules = userProfile?.completedModules.length;
+      strand = '';
+      completedModuelsList = userProfile?.completedModules;
+      rank = userProfile?.rank.toString() ?? '';
+      totalModules = moduleList.length;
+    });
   }
 
   @override
@@ -81,7 +80,9 @@ class _ProfileMenuState extends State<ProfileMenu> {
               const SizedBox(height: 20),
               Center(
                 child: Text(
-                  fullName,
+                  fullName.isEmpty
+                      ? 'Loading...'
+                      : fullName, // Show 'Loading...' until the data is fetched
                   style: GoogleFonts.montserrat(
                       fontSize: 24,
                       color: Colors.white,
@@ -90,7 +91,9 @@ class _ProfileMenuState extends State<ProfileMenu> {
               ),
               Center(
                 child: Text(
-                  strand,
+                  strand.isEmpty
+                      ? 'Loading...'
+                      : strand, // Handle empty or loading strand value
                   textAlign: TextAlign.center,
                   style: GoogleFonts.montserrat(color: Colors.white),
                 ),
@@ -113,7 +116,7 @@ class _ProfileMenuState extends State<ProfileMenu> {
                     Row(
                       children: [
                         Expanded(
-                          child: _buildStatCard('Ranking', '#1/100'),
+                          child: _buildStatCard('Ranking', '#${rank}'),
                         ),
                         Expanded(
                           child: _buildStatCard('XP Earned', xp.toString()),
@@ -123,10 +126,24 @@ class _ProfileMenuState extends State<ProfileMenu> {
                     const SizedBox(height: 10),
                     Center(
                       child: _buildStatCard('Modules Completed',
-                          '$completedModules/4'), // Change to /4
+                          '$completedModules/${totalModules}'), 
                     ),
                   ],
                 ),
+              ),
+              Text('Points earned per module',
+                  style: GoogleFonts.montserrat(
+                      color: Colors.white, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 10),
+              Expanded(
+                child: ListView.builder(
+                    itemCount: completedModuelsList?.length,
+                    itemBuilder: (context, index) {
+                      CompletedModule? currentModule =
+                          completedModuelsList?[index] ?? null;
+                      return _buildStatCard(currentModule?.moduleTitle ?? '',
+                          currentModule?.pointsEarned.toString() ?? '');
+                    }),
               ),
             ],
           ),

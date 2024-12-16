@@ -1,7 +1,12 @@
+import 'dart:developer';
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../firestore/firestore_user.dart';
+import 'package:i_read_app/models/module.dart';
+import 'package:i_read_app/models/user.dart';
+import 'package:i_read_app/services/api.dart';
+import 'package:i_read_app/services/storage.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -10,14 +15,15 @@ class LoginPage extends StatefulWidget {
   _LoginPageState createState() => _LoginPageState();
 }
 
-class _LoginPageState extends State<LoginPage> {
-  final FirestoreUser _firestoreUser = FirestoreUser();
+class _LoginPageState extends State <LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   bool _isPasswordVisible = false;
   String? _emailError;
   String? _passwordError;
+  ApiService apiService = ApiService();
+  StorageService storageService = StorageService();
 
   bool _isEmailValid(String email) {
     final emailRegExp =
@@ -74,8 +80,19 @@ class _LoginPageState extends State<LoginPage> {
 
     if (_emailError == null && _passwordError == null) {
       try {
-        await _firestoreUser.signIn(
-            email, password); // Use FirestoreUser for login
+        // Generate and store token
+        await apiService.postGenerateToken(email, password);
+        UserProfile? userProfile = await apiService.getProfile();
+        List<Module>? modules = await apiService.getModules();
+
+        if (userProfile != null) {
+          await storageService.storeUserProfile(userProfile);
+        }
+
+        if (modules != null && modules.isNotEmpty) {
+          await storageService.storeModules(modules);
+        }
+
         Navigator.of(context).pushReplacementNamed('/home');
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -160,14 +177,14 @@ class _LoginPageState extends State<LoginPage> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: !_isPasswordVisible,
-                      maxLength: 10,
+                      maxLength: 255,
                       decoration: InputDecoration(
-                        labelText: 'Password',
+                        labelText: 'Access Code',
                         labelStyle: const TextStyle(color: Colors.white),
                         filled: true,
                         fillColor: Colors.blue[800]?.withOpacity(0.3),
                         border: const OutlineInputBorder(),
-                        hintText: 'Enter password here...',
+                        hintText: 'Enter Access code here...',
                         hintStyle: const TextStyle(color: Colors.white54),
                         prefixIcon: const Icon(Icons.lock, color: Colors.white),
                         suffixIcon: IconButton(
@@ -206,23 +223,23 @@ class _LoginPageState extends State<LoginPage> {
                           style: GoogleFonts.montserrat(color: Colors.white)),
                     ),
                     const SizedBox(height: 20),
-                    RichText(
-                      text: TextSpan(
-                        style: GoogleFonts.montserrat(color: Colors.white),
-                        children: [
-                          const TextSpan(text: "Don't have an Account? "),
-                          TextSpan(
-                            text: 'Sign Up here.',
-                            style: const TextStyle(fontWeight: FontWeight.bold),
-                            recognizer: TapGestureRecognizer()
-                              ..onTap = () {
-                                Navigator.of(context)
-                                    .pushReplacementNamed('/register');
-                              },
-                          ),
-                        ],
-                      ),
-                    ),
+                    // RichText(
+                    //   text: TextSpan(
+                    //     style: GoogleFonts.montserrat(color: Colors.white),
+                    //     children: [
+                    //       const TextSpan(text: "Don't have an Account? "),
+                    //       TextSpan(
+                    //         text: 'Sign Up here.',
+                    //         style: const TextStyle(fontWeight: FontWeight.bold),
+                    //         recognizer: TapGestureRecognizer()
+                    //           ..onTap = () {
+                    //             Navigator.of(context)
+                    //                 .pushReplacementNamed('/register');
+                    //           },
+                    //       ),
+                    //     ],
+                    //   ),
+                    // ),
                   ],
                 ),
               ),

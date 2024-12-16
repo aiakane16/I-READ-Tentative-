@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'intro_page.dart';
@@ -20,6 +22,8 @@ class _SplashPageState extends State<SplashPage>
   @override
   void initState() {
     super.initState();
+    log('hello world');
+
     _controller =
         AnimationController(vsync: this, duration: const Duration(seconds: 2));
 

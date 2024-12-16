@@ -1,12 +1,22 @@
+import 'dart:developer';
+import 'dart:io';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:i_read_app/models/answer.dart';
+import 'package:i_read_app/models/module.dart';
+import 'package:i_read_app/models/question.dart';
+import 'package:i_read_app/services/api.dart';
+import 'package:i_read_app/services/storage.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../../../mainmenu/modules_menu.dart';
+import 'package:record/record.dart';
+import 'package:path_provider/path_provider.dart';
 
 class WordProQuiz extends StatefulWidget {
   final String moduleTitle;
@@ -27,7 +37,7 @@ class WordProQuiz extends StatefulWidget {
 class _WordProQuizState extends State<WordProQuiz> {
   final FlutterTts flutterTts = FlutterTts();
   final stt.SpeechToText speech = stt.SpeechToText();
-  List<Map<String, dynamic>> questions = [];
+  List<Question> questions = [];
   int currentQuestionIndex = 0;
   String recognizedText = '';
   bool isListening = false;
@@ -44,44 +54,42 @@ class _WordProQuizState extends State<WordProQuiz> {
   bool canProceedToNext = false;
   Timer? _nextButtonTimer;
   bool xpEarned = false;
+  StorageService storageService = StorageService();
+  ApiService apiService = ApiService();
+  List<Answer> answers = [];
+  String moduleId = '';
+  String moduleTitle = '';
+  bool isAnswerSelected = false;
+  bool isLoading = true;
+  AudioRecorder record = AudioRecorder();
+  double accuracy_score = 0;
+  double fluency_score = 0;
+  double pronunciation_score = 0;
+  double completeness_score = 0;
+  Map<String, dynamic> assesment_result = {};
 
   @override
   void initState() {
     super.initState();
-    userId = FirebaseAuth.instance.currentUser!.uid;
     _loadQuestions();
   }
 
   Future<void> _loadQuestions() async {
     try {
-      String uniqueId = 'sPB0TBLavMJimWriirGr'; // Adjust this as needed
-      final querySnapshot = await FirebaseFirestore.instance
-          .collection('fields')
-          .doc('Word Pronunciation')
-          .collection(widget.difficulty)
-          .doc(uniqueId)
-          .get();
-
-      if (querySnapshot.exists) {
-        final data = querySnapshot.data();
-        if (data != null && data['modules'] != null) {
-          var modulesData = data['modules'] as List<dynamic>;
-
-          for (var module in modulesData) {
-            var questionsData = module['questions'] as List<dynamic>;
-            for (var questionData in questionsData) {
-              questions.add({
-                'question': questionData['question'],
-                'correctAnswer': questionData['correctAnswer'],
-              });
-            }
-          }
-        }
-      }
-      if (questions.isNotEmpty) {
-        await _speakQuestion();
-        setState(() {});
-      }
+      List<Module> modules = await storageService.getModules();
+      Module module = modules
+          .where((element) =>
+              element.difficulty == widget.difficulty &&
+              element.category == 'Word Pronunciation')
+          .last;
+      List<Question> moduleQuestions = module.questionsPerModule;
+      print(module.title);
+      setState(() {
+        questions = moduleQuestions;
+        isLoading = false;
+        moduleId = module.id;
+        moduleTitle = module.title;
+      });
     } catch (e) {
       print('Error loading questions: $e');
     }
@@ -93,7 +101,8 @@ class _WordProQuizState extends State<WordProQuiz> {
         isSpeaking = true;
         recognizedText = '';
       });
-      await flutterTts.speak(questions[currentQuestionIndex]['question']);
+      await flutterTts
+          .speak(questions[currentQuestionIndex].text ?? 'Loading Question');
       flutterTts.setCompletionHandler(() {
         setState(() {
           isSpeaking = false;
@@ -104,165 +113,100 @@ class _WordProQuizState extends State<WordProQuiz> {
   }
 
   void startListening() async {
-    var status = await Permission.microphone.status;
-    if (status.isDenied) {
-      status = await Permission.microphone.request();
-      if (status.isDenied) {
-        setState(() {
-          recognizedText = 'Microphone permission denied.';
-        });
-        return;
-      }
-    }
+    // Check and request permission if needed
 
-    if (!isListening && !isSpeaking) {
-      bool available = await speech.initialize();
-      if (available) {
-        setState(() {
-          recognizedText = 'Listening...';
-          feedbackMessage = '';
-          feedbackIcon = Icons.help;
-          showNextButton = false;
-          isListening = true;
-        });
+    if (await record.hasPermission()) {
+      final filePath = '/storage/emulated/0/Download/myFile.wav';
 
-        speech.listen(onResult: (result) {
-          if (result.recognizedWords.isNotEmpty) {
-            setState(() {
-              recognizedText = result.recognizedWords;
-            });
-
-            _silenceTimer?.cancel();
-            _silenceTimer = Timer(Duration(seconds: 3), () {
-              speech.stop();
-              isListening = false;
-              _processRecognizedText();
-            });
-          }
-        });
-
-        // Auto-check after 3 seconds of silence
-        _silenceTimer = Timer(Duration(seconds: 3), () {
-          if (isListening) {
-            speech.stop();
-            isListening = false;
-            _processRecognizedText();
-          }
-        });
-      } else {
-        setState(() {
-          recognizedText = 'Speech recognition not available.';
-        });
-      }
-    }
-  }
-
-  void _processRecognizedText() {
-    if (recognizedText.isNotEmpty) {
-      recognizedText =
-          recognizedText[0].toUpperCase() + recognizedText.substring(1);
-      if (!recognizedText.endsWith('.')) {
-        recognizedText += '.';
-      }
-      checkAnswer(recognizedText);
-    }
-  }
-
-  Future<void> checkAnswer(String recognizedText) async {
-    String correctAnswer = questions[currentQuestionIndex]['correctAnswer'];
-    int accuracy = _calculateAccuracy(recognizedText, correctAnswer);
-
-    if (accuracy >= 90) {
+      await record.start(
+        RecordConfig(
+            encoder: AudioEncoder.wav, bitRate: 128000, sampleRate: 44100),
+        path: filePath,
+      );
+     
       setState(() {
-        feedbackMessage = 'You are $accuracy% accurate!';
-        feedbackIcon = Icons.check_circle;
-        attemptCounter = 0;
-        totalAccuracy += accuracy;
-        if (accuracy > bestAccuracy) {
-          bestAccuracy = accuracy.toDouble();
-        }
-        if (!xpEarned) {
-          xpEarned = true;
-          _awardXP();
-        }
-      });
-      _nextButtonTimer?.cancel();
-      _nextButtonTimer = Timer(Duration(seconds: 2), () {
-        setState(() {
-          showNextButton = true;
-        });
-      });
-    } else {
-      mistakes++;
-      attemptCounter++;
-      setState(() {
-        feedbackMessage = 'You are $accuracy% accurate!';
-        feedbackIcon = Icons.cancel;
-        if (attemptCounter >= 3) {
-          showNextButton = true;
-        }
+        isListening = true;
       });
     }
+
+    // var status = await Permission.microphone.status;
+    // if (status.isDenied) {
+    //   status = await Permission.microphone.request();
+    //   if (status.isDenied) {
+    //     setState(() {
+    //       recognizedText = 'Microphone permission denied.';
+    //     });
+    //     return;
+    //   }
+    // }
+
+    // if (!isListening && !isSpeaking) {
+    //   bool available = await speech.initialize();
+    //   if (available) {
+    //     setState(() {
+    //       recognizedText = 'Listening...';
+    //       feedbackMessage = '';
+    //       feedbackIcon = Icons.help;
+    //       showNextButton = false;
+    //       isListening = true;
+    //     });
+
+    //     speech.listen(onResult: (result) {
+    //       if (result.recognizedWords.isNotEmpty) {
+    //         setState(() {
+    //           recognizedText = result.recognizedWords;
+    //         });
+
+    //         _silenceTimer?.cancel();
+    //         _silenceTimer = Timer(Duration(seconds: 3), () {
+    //           speech.stop();
+    //           isListening = false;
+    //           _processRecognizedText();
+    //         });
+    //       }
+    //     });
+
+    //     // Auto-check after 3 seconds of silence
+    //     _silenceTimer = Timer(Duration(seconds: 3), () {
+    //       if (isListening) {
+    //         speech.stop();
+    //         isListening = false;
+    //         _processRecognizedText();
+    //       }
+    //     });
+    //   } else {
+    //     setState(() {
+    //       recognizedText = 'Speech recognition not available.';
+    //     });
+    //   }
+    // }
   }
 
-  int _calculateAccuracy(String recognizedText, String correctAnswer) {
-    int correctCount = 0;
-    List<String> recognizedWords = recognizedText.split(' ');
-    List<String> correctWords = correctAnswer.split(' ');
-
-    for (var word in recognizedWords) {
-      if (correctWords.contains(word)) {
-        correctCount++;
-      }
-    }
-
-    int accuracy = ((correctCount / correctWords.length) * 100).round();
-    return accuracy > 100 ? 100 : accuracy;
-  }
-
-  Future<void> _awardXP() async {
-    int baseXP = 500;
-    final userRef = FirebaseFirestore.instance.collection('users').doc(userId);
-    try {
-      await userRef.set({
-        'xp': FieldValue.increment(baseXP),
-        'status': 'completed', // Set status to completed when XP is awarded
-      }, SetOptions(merge: true));
-      await _updateProgress(); // Update the progress after awarding XP
-    } catch (e) {
-      print('Error updating XP: $e');
-    }
-  }
-
-  Future<void> _updateProgress() async {
-    String uniqueId = '$userId-${widget.moduleTitle}-${widget.difficulty}';
-    final docRef = FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('progress')
-        .doc(widget.moduleTitle) // Module document
-        .collection(widget.difficulty) // Difficulty collection
-        .doc(uniqueId); // Unique document ID
-
-    try {
-      await docRef.set({
-        'status': 'COMPLETED', // Set status to COMPLETED
-        'mistakes': mistakes,
-        'accuracy':
-            totalAccuracy / (currentQuestionIndex + 1), // Average accuracy
-      }, SetOptions(merge: true)); // Use merge to update existing fields
-
-      // Award XP only on the first attempt
-      if (attemptCounter == 0) {
-        await _awardXP();
-      }
-      print('Progress updated for user $userId: COMPLETED');
-    } catch (e) {
-      print('Error updating progress: $e');
-    }
+  void stopListening() async {
+    setState(() {
+      isListening = false;
+    });
+    final path = await record.stop();
+    Map<String, dynamic> response = await apiService.postAssessPronunciation(
+        path ?? '', questions[currentQuestionIndex].text, questions[currentQuestionIndex].id);
+    _showAssesmentResult(response);
+    setState(() {
+      // currentQuestionIndex++;
+      assesment_result = response;
+      recognizedText = response['recognized_text'];
+      showNextButton = true;
+      canProceedToNext = true;
+    });
+    record.dispose();
   }
 
   Future<void> _nextQuestion() async {
+    // Question currentQuestion = questions[currentQuestionIndex];
+    // Answer answer = Answer(
+    //     questionId: currentQuestion.id,
+    //     answer: currentQuestion.choices[selectedAnswerIndex].text);
+    // answers.add(answer);
+
     if (currentQuestionIndex < questions.length - 1 && canProceedToNext) {
       setState(() {
         currentQuestionIndex++;
@@ -276,10 +220,102 @@ class _WordProQuizState extends State<WordProQuiz> {
       await _speakQuestion();
     } else {
       await _showCompletionScreen();
-      if (!xpEarned) {
-        await _awardXP(); // Ensure XP is awarded at the end
-      }
     }
+  }
+
+  Future<void> _showAssesmentResult(result) async {
+    showDialog(
+      context: context,
+      builder: (dialogContext) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          child: Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [Colors.blue[900]!, Colors.blue[700]!],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Center(
+                  child: Text(
+                    'Assessment Breakdown',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Montserrat',
+                        fontSize: 28),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Recognized Text: ${result['recognized_text']}',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Montserrat',
+                      fontSize: 18),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Accuracy Score: ${result['accuracy_score']}',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Montserrat',
+                      fontSize: 18),
+                ),
+                Text(
+                  'Fluency Score: ${result['fluency_score']}',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Montserrat',
+                      fontSize: 18),
+                ),
+                Text(
+                  'Pronunciation Score: ${result['pronunciation_score']}',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Montserrat',
+                      fontSize: 18),
+                ),
+                Text(
+                  'Completeness Score: ${result['completeness_score']}',
+                  style: TextStyle(
+                      color: Colors.white,
+                      fontFamily: 'Montserrat',
+                      fontSize: 18),
+                ),
+                if (result['prosody_score'] != null)
+                  Text(
+                    'Prosody Score: ${result['prosody_score']}',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Montserrat',
+                        fontSize: 18),
+                  ),
+                const SizedBox(height: 20),
+                TextButton(
+                  onPressed: () {
+                    Navigator.of(dialogContext).pop(); // This closes the dialog
+                  },
+                  child: Text(
+                    'Close',
+                    style: TextStyle(
+                        color: Colors.white,
+                        fontFamily: 'Montserrat',
+                        fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
   }
 
   Future<void> _showCompletionScreen() async {
@@ -309,15 +345,6 @@ class _WordProQuizState extends State<WordProQuiz> {
                         fontFamily: 'Montserrat',
                         fontSize: 28),
                   ),
-                ),
-                const SizedBox(height: 20),
-                Text(
-                  'Mistakes: $mistakes',
-                  style: TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'Montserrat',
-                      fontSize: 18),
-                  textAlign: TextAlign.center,
                 ),
                 const SizedBox(height: 20),
                 TextButton(
@@ -378,7 +405,7 @@ class _WordProQuizState extends State<WordProQuiz> {
               children: [
                 Text(
                   questions.isNotEmpty
-                      ? questions[currentQuestionIndex]['question']
+                      ? questions[currentQuestionIndex].text
                       : 'Loading question...',
                   style:
                       GoogleFonts.montserrat(fontSize: 26, color: Colors.white),
@@ -401,14 +428,18 @@ class _WordProQuizState extends State<WordProQuiz> {
                 const SizedBox(height: 20),
                 GestureDetector(
                   onTap: isListening || isSpeaking || showNextButton
-                      ? null
+                      ? stopListening
                       : startListening,
                   child: Container(
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: isListening || isSpeaking || showNextButton
-                          ? Colors.grey
-                          : Colors.blue[600],
+                      color: isListening
+                          ? Colors.red // Red when listening
+                          : (isSpeaking || showNextButton)
+                              ? Colors
+                                  .grey // Grey when speaking or showing the next button
+                              : Colors.blue[
+                                  600], // Default to blue when neither listening nor speaking
                     ),
                     padding: const EdgeInsets.all(10),
                     child: Icon(

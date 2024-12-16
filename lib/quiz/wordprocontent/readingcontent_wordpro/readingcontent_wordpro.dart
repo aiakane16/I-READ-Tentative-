@@ -5,11 +5,13 @@ import '../wordprodifficulty/wordpro_1.dart';
 
 class ReadingContentPageWordPro1 extends StatelessWidget {
   final String level;
+  final String title;
   final List<String> uniqueIds;
 
   const ReadingContentPageWordPro1({
     super.key,
     required this.level,
+    required this.title,
     required this.uniqueIds,
   });
 
@@ -47,7 +49,7 @@ class ReadingContentPageWordPro1 extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Topic Title',
+                title,
                 style: GoogleFonts.montserrat(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -67,15 +69,13 @@ class ReadingContentPageWordPro1 extends StatelessWidget {
                 // Center the button
                 child: ElevatedButton(
                   onPressed: () {
-                    print('Unique IDs: $uniqueIds'); // Debug print
                     // Navigate to the Word Pro quiz page when the button is pressed
                     Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => WordProQuiz(
                           moduleTitle: 'Word Pro Quiz',
-                          difficulty:
-                              difficulty, // Pass the actual difficulty level
+                          difficulty: level, // Pass the actual difficulty level
                           uniqueIds: uniqueIds,
                         ),
                       ),

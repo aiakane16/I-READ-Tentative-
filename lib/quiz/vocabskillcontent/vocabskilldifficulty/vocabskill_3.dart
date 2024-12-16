@@ -1,31 +1,44 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:i_read_app/models/answer.dart';
+import 'package:i_read_app/models/module.dart';
+import 'package:i_read_app/models/question.dart';
+import 'package:i_read_app/services/api.dart';
+import 'package:i_read_app/services/storage.dart';
 
-class VocabSkillsQuiz3 extends StatefulWidget {
+class VocabSkillsQuiz extends StatefulWidget {
   final String moduleTitle;
 
-  const VocabSkillsQuiz3(
+  const VocabSkillsQuiz(
       {super.key,
       required this.moduleTitle,
       required List<String> uniqueIds,
       required String difficulty});
 
   @override
-  _VocabSkillsQuiz3State createState() => _VocabSkillsQuiz3State();
+  _VocabSkillsQuizState createState() => _VocabSkillsQuizState();
 }
 
-class _VocabSkillsQuiz3State extends State<VocabSkillsQuiz3> {
+class _VocabSkillsQuizState extends State<VocabSkillsQuiz> {
   int currentQuestionIndex = 0;
   int score = 0;
   int mistakes = 0;
-  List<Map<String, dynamic>> questions = [];
+  List<Question> questions = [];
   bool isLoading = true;
   bool isAnswerSelected = false;
   int selectedAnswerIndex = -1; // Track selected option
   String feedbackMessage = '';
   bool isCorrect = false;
+  StorageService storageService = StorageService();
+  ApiService apiService = ApiService();
+  List<Answer> answers = [];
+  String moduleId = '';
+  String moduleTitle = '';
 
   @override
   void initState() {
@@ -35,26 +48,16 @@ class _VocabSkillsQuiz3State extends State<VocabSkillsQuiz3> {
 
   Future<void> _loadQuestions() async {
     try {
-      final snapshot = await FirebaseFirestore.instance
-          .collection('fields')
-          .doc('Vocabulary Skills') // Update this as needed
-          .collection('Hard') // Adjust this as needed
-          .doc('7bdxc9Mr3F46ywnt7mRt') // Replace with your unique ID
-          .get();
-
-      if (snapshot.exists) {
-        final data = snapshot.data();
-        if (data != null && data['modules'] != null) {
-          var modules = List<Map<String, dynamic>>.from(data['modules']);
-          if (modules.isNotEmpty) {
-            var questionsData = modules[0]['questions'] ?? [];
-            questions = List<Map<String, dynamic>>.from(questionsData);
-          }
-        }
-      }
+      List<Module> modules = await storageService.getModules();
+      Module module =
+          modules.where((element) => element.difficulty == 'Hard' && element.category == 'Vocabulary Skills' ).first;
+      List<Question> moduleQuestions = module.questionsPerModule;
 
       setState(() {
+        questions = moduleQuestions;
         isLoading = false;
+        moduleId = module.id;
+        moduleTitle = module.title;
       });
     } catch (e) {
       _showErrorDialog('Error loading questions: $e');
@@ -81,28 +84,13 @@ class _VocabSkillsQuiz3State extends State<VocabSkillsQuiz3> {
     );
   }
 
-  void _submitAnswer() {
-    final correctAnswer = questions[currentQuestionIndex]['correctAnswer'];
-
-    if (questions[currentQuestionIndex]['options'][selectedAnswerIndex] ==
-        correctAnswer) {
-      setState(() {
-        score++;
-        feedbackMessage = "You are correct!";
-        isCorrect = true;
-      });
-    } else {
-      mistakes++;
-      feedbackMessage = "Incorrect answer. Please try again.";
-      isCorrect = false;
-    }
-
-    setState(() {
-      isAnswerSelected = true; // Show feedback after submission
-    });
-  }
-
   void _nextQuestion() {
+    Question currentQuestion = questions[currentQuestionIndex];
+    Answer answer = Answer(
+        questionId: currentQuestion.id,
+        answer: currentQuestion.choices[selectedAnswerIndex].text);
+    answers.add(answer);
+
     if (currentQuestionIndex < questions.length - 1) {
       setState(() {
         currentQuestionIndex++;
@@ -110,43 +98,16 @@ class _VocabSkillsQuiz3State extends State<VocabSkillsQuiz3> {
         selectedAnswerIndex = -1; // Reset the selected answer
         feedbackMessage = ''; // Clear feedback
       });
+    } else if (currentQuestionIndex == questions.length - 1) {
+      _showResults(); // Only show results if it's the last question
     } else {
-      _showResults();
+      _showResults(); // Only show results if it's the last question
     }
   }
 
   Future<void> _showResults() async {
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-    String moduleTitle = widget.moduleTitle;
-    String difficulty = 'Hard'; // Adjust as necessary
-
-    // Define the unique document ID for the specific difficulty
-    String difficultyDocId =
-        '$userId-$moduleTitle-$difficulty'; // Updated unique ID format
-
-    // Update user's progress for the specific difficulty
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('progress')
-        .doc(moduleTitle)
-        .collection('difficulty')
-        .doc(difficultyDocId)
-        .set({
-      'status': 'COMPLETED', // Set status to uppercase
-      'mistakes': mistakes,
-      'time': 0, // Add any other relevant fields as needed
-    }, SetOptions(merge: true));
-
-    // Update user XP in the users collection
-    await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'xp': FieldValue.increment(500), // Increment XP
-    });
-
-    // Add module to completedModules
-    await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'completedModules': FieldValue.arrayUnion([moduleTitle]),
-    });
+    Map<String, dynamic> response =
+        await apiService.postSubmitModuleAnswer(moduleId, answers);
 
     // Show completion dialog
     showDialog(
@@ -159,7 +120,7 @@ class _VocabSkillsQuiz3State extends State<VocabSkillsQuiz3> {
             style: GoogleFonts.montserrat(color: Colors.white),
           ),
           content: Text(
-            'Score: $score/${questions.length}\nMistakes: $mistakes\nXP Earned: 500',
+            'Score: ${response['score']}/${questions.length}\nMistakes: ${questions.length - response['score']}\nXP Earned: ${response['points_gained']}',
             style: GoogleFonts.montserrat(color: Colors.white),
           ),
           actions: [
@@ -204,8 +165,8 @@ class _VocabSkillsQuiz3State extends State<VocabSkillsQuiz3> {
   }
 
   Widget _buildQuizContent() {
-    final question = questions[currentQuestionIndex]['question'];
-    final options = questions[currentQuestionIndex]['options'];
+    final question = questions[currentQuestionIndex].text;
+    final options = questions[currentQuestionIndex].choices;
 
     return Container(
       decoration: const BoxDecoration(
@@ -247,7 +208,7 @@ class _VocabSkillsQuiz3State extends State<VocabSkillsQuiz3> {
                       minimumSize: const Size(double.infinity, 50),
                     ),
                     child: Text(
-                      option,
+                      option.text,
                       style: GoogleFonts.montserrat(color: Colors.white),
                     ),
                   ),
@@ -257,30 +218,17 @@ class _VocabSkillsQuiz3State extends State<VocabSkillsQuiz3> {
             const SizedBox(height: 20),
             ElevatedButton(
               onPressed: () {
-                if (isAnswerSelected) {
-                  // If an answer has been selected, check if it's correct
-                  if (isCorrect) {
-                    _nextQuestion(); // Go to the next question if correct
-                  } else {
-                    // If incorrect, allow the user to select another option
-                    setState(() {
-                      feedbackMessage = ''; // Clear feedback
-                      isAnswerSelected = false; // Reset for new selection
-                      selectedAnswerIndex = -1; // Reset the selection
-                    });
-                  }
-                } else if (selectedAnswerIndex != -1) {
-                  _submitAnswer(); // Submit answer if selected
+                if (selectedAnswerIndex != -1) {
+                  _nextQuestion(); // Allow moving to the next question after feedback is shown
                 }
               },
               style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue, // Updated color for Submit button
+                backgroundColor: Colors.blue,
                 minimumSize: const Size(150, 40),
               ),
               child: Text(
-                isCorrect ? 'Next' : 'Submit',
-                style: GoogleFonts.montserrat(
-                    color: Colors.white), // Change text color to white
+                'Next', // Change button text based on selection
+                style: GoogleFonts.montserrat(color: Colors.white),
               ),
             ),
             const SizedBox(height: 20),

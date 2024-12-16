@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../firestore/firestore_user.dart';
+// import '../firestore/firestore_user.dart';
 import '../functions/editprofilepage.dart'; // Ensure the correct import path
 
 class SettingsMenu extends StatefulWidget {
@@ -12,17 +12,17 @@ class SettingsMenu extends StatefulWidget {
 }
 
 class _SettingsMenuState extends State<SettingsMenu> {
-  final FirestoreUser _firestoreUser = FirestoreUser();
-  User? _currentUser;
+  // final FirestoreUser _firestoreUser = FirestoreUser();
+  // User? _currentUser;
 
   @override
   void initState() {
     super.initState();
-    _currentUser = FirebaseAuth.instance.currentUser;
+    // _currentUser = FirebaseAuth.instance.currentUser;
   }
 
   void _logout() async {
-    await FirebaseAuth.instance.signOut();
+    // await FirebaseAuth.instance.signOut();
     Navigator.of(context).pushReplacementNamed('/login');
   }
 

@@ -3,21 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:i_read_app/models/answer.dart';
+import 'package:i_read_app/models/module.dart';
+import 'package:i_read_app/models/question.dart';
+import 'package:i_read_app/services/api.dart';
+import 'package:i_read_app/services/storage.dart';
 import '../../../mainmenu/modules_menu.dart';
-
-class Question {
-  final String questionText;
-  final List<String> options;
-  final String correctAnswer;
-  final String shortStory;
-
-  Question({
-    required this.questionText,
-    required this.options,
-    required this.correctAnswer,
-    required this.shortStory,
-  });
-}
 
 class ReadCompQuiz extends StatefulWidget {
   final String moduleTitle;
@@ -43,6 +34,13 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
   bool isAnswerSubmitted = false;
   bool hasEarnedXP = false; // Track if XP has been earned
   int selectedAnswerIndex = -1; // Track the selected answer index
+  StorageService storageService = StorageService();
+  ApiService apiService = ApiService();
+  List<Answer> answers = [];
+  String moduleId = '';
+  String moduleTitle = '';
+  bool isAnswerSelected = false;
+  String feedbackMessage = '';
 
   Question? currentQuestion;
   int currentQuestionIndex = 0;
@@ -64,39 +62,17 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
 
   Future<void> _loadQuestions() async {
     try {
-      if (widget.uniqueIds.isNotEmpty) {
-        String uniqueId = widget.uniqueIds[0]; // Use the first unique ID
+      List<Module> modules = await storageService.getModules();
+      Module module =
+          modules.where((element) => element.difficulty == widget.difficulty && element.category == 'Reading Comprehension' ).last;
+      List<Question> moduleQuestions = module.questionsPerModule;
 
-        final querySnapshot = await FirebaseFirestore.instance
-            .collection('fields')
-            .doc('Reading Comprehension')
-            .collection(widget.difficulty)
-            .doc(uniqueId)
-            .get();
-
-        if (querySnapshot.exists) {
-          final data = querySnapshot.data();
-          if (data != null && data['modules'] != null) {
-            var modulesData = data['modules'] as List<dynamic>;
-            if (modulesData.isNotEmpty) {
-              var questionsData = modulesData[0]['questions'] as List<dynamic>;
-              for (var questionData in questionsData) {
-                var question = Question(
-                  questionText: questionData['question'],
-                  options: List<String>.from(questionData['options']),
-                  correctAnswer: questionData['correctAnswer'],
-                  shortStory: questionData['shortStory'],
-                );
-                questions.add(question);
-              }
-            }
-          }
-        } else {
-          _showErrorDialog('No unique IDs available.');
-        }
-      } else {
-        _showErrorDialog('No unique IDs available.');
-      }
+      setState(() {
+        questions = moduleQuestions;
+        isLoading = false;
+        moduleId = module.id;
+        moduleTitle = module.title;
+      });
     } catch (e) {
       _showErrorDialog('Failed to load questions. Please try again.');
     } finally {
@@ -118,134 +94,62 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
         }
       } else {
         _timer.cancel();
-        _submitAnswer(); // Automatically submit when time runs out
+        _nextQuestion(); // Automatically submit when time runs out
       }
     });
-  }
-
-  void _submitAnswer() {
-    if (!isAnswerSubmitted) {
-      final correctAnswer = questions[currentQuestionIndex].correctAnswer;
-
-      if (questions[currentQuestionIndex].options[selectedAnswerIndex] ==
-          correctAnswer) {
-        score++;
-      } else {
-        mistakes++;
-      }
-
-      setState(() {
-        isAnswerSubmitted = true;
-      });
-      _timer.cancel(); // Stop the timer when an answer is submitted
-    }
   }
 
   void _nextQuestion() {
-    if (isAnswerSubmitted) {
-      setState(() {
-        selectedAnswerIndex = -1; // Reset selected answer for the next question
-        isAnswerSubmitted = false; // Reset answer submission state
-      });
+    Question currentQuestion = questions[currentQuestionIndex];
+    Answer answer = Answer(
+        questionId: currentQuestion.id,
+        answer: currentQuestion.choices[selectedAnswerIndex].text);
+    answers.add(answer);
 
-      if (currentQuestionIndex < questions.length - 1) {
-        setState(() {
-          currentQuestionIndex++;
-        });
-        _startTimer(); // Restart timer for the next question
-      } else {
-        _calculateResults(); // Calculate results when no more questions
-      }
+    if (currentQuestionIndex < questions.length - 1) {
+      setState(() {
+        currentQuestionIndex++;
+        isAnswerSelected = false; // Reset for the next question
+        selectedAnswerIndex = -1; // Reset the selected answer
+        feedbackMessage = ''; // Clear feedback
+      });
+    } else if (currentQuestionIndex == questions.length - 1) {
+      _showResults(); // Only show results if it's the last question
+    } else {
+      _showResults(); // Only show results if it's the last question
     }
   }
 
-  Future<void> _calculateResults() async {
-    setState(() {
-      isCalculatingResults = true;
-    });
+  Future<void> _showResults() async {
+    Map<String, dynamic> response = await apiService.postSubmitModuleAnswer(moduleId, answers);
+    List<Module>? modules = await apiService.getModules();
 
-    String userId = FirebaseAuth.instance.currentUser!.uid;
-    String difficultyDocId =
-        '$userId-Reading Comprehension-${widget.difficulty}'; // Unique ID for the difficulty document
-
-    // Check if the status is already COMPLETED
-    DocumentSnapshot difficultyDoc = await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('progress')
-        .doc(widget.moduleTitle)
-        .collection('difficulty')
-        .doc(difficultyDocId)
-        .get();
-
-    bool isCompleted = difficultyDoc.exists &&
-        (difficultyDoc.data() as Map<String, dynamic>)['status'] == 'COMPLETED';
-
-    // Update the existing difficulty document instead of the module
-    await FirebaseFirestore.instance
-        .collection('users')
-        .doc(userId)
-        .collection('progress')
-        .doc(widget.moduleTitle)
-        .collection('difficulty')
-        .doc(difficultyDocId)
-        .set({
-      'status': 'COMPLETED', // Mark as completed
-      'mistakes': mistakes, // Add mistakes
-      'time': 0, // Replace 0 with actual time taken if available
-    }, SetOptions(merge: true));
-
-    // Check if user has already earned XP
-    if (!hasEarnedXP && !isCompleted) {
-      // Update XP
-      await FirebaseFirestore.instance.collection('users').doc(userId).update({
-        'xp': FieldValue.increment(500),
-      });
-      hasEarnedXP = true; // Set to true to prevent re-earning XP
+    if (modules != null && modules.isNotEmpty) {
+      await storageService.storeModules(modules);
     }
-
-    // Add to completed modules (optional, can be removed if not needed)
-    await FirebaseFirestore.instance.collection('users').doc(userId).update({
-      'completedModules': FieldValue.arrayUnion([widget.moduleTitle]),
-    });
-
-    setState(() {
-      isCalculatingResults = false;
-    });
-
     // Show completion dialog
     showDialog(
       context: context,
       builder: (context) {
         return AlertDialog(
-          backgroundColor: Colors.blue, // Set background color
+          backgroundColor: Colors.blue,
           title: Text(
-            '${widget.moduleTitle} Quiz Complete',
-            style:
-                GoogleFonts.montserrat(color: Colors.white), // White text color
+            '$moduleTitle Quiz Complete',
+            style: GoogleFonts.montserrat(color: Colors.white),
           ),
           content: Text(
-            'Score: $score/${questions.length}\nMistakes: $mistakes\nXP Earned: ${hasEarnedXP ? 500 : 0}',
-            style:
-                GoogleFonts.montserrat(color: Colors.white), // White text color
+            'Score: ${response['score']}/${questions.length}\nMistakes: ${questions.length - response['score']}\nXP Earned: ${response['points_gained']}',
+            style: GoogleFonts.montserrat(color: Colors.white),
           ),
           actions: [
             TextButton(
               onPressed: () {
-                Navigator.of(context).pop();
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => ModulesMenu(
-                      onModulesUpdated: (List<String> updatedModules) {},
-                    ),
-                  ),
-                );
+                Navigator.of(context).pop(); // Close the dialog
+                Navigator.pop(context); // Return to modules menu
               },
               child: Text(
                 'Done',
-                style: GoogleFonts.montserrat(
-                    color: Colors.white), // White text color
+                style: GoogleFonts.montserrat(color: Colors.white),
               ),
             ),
           ],
@@ -302,106 +206,78 @@ class _ReadCompQuizState extends State<ReadCompQuiz> {
   }
 
   Widget _buildQuizContent() {
-    final question = questions[currentQuestionIndex].questionText;
-    final options = questions[currentQuestionIndex].options;
-    final shortStory = questions[currentQuestionIndex].shortStory;
+    final question = questions[currentQuestionIndex].text;
+    final options = questions[currentQuestionIndex].choices;
 
-    String feedbackMessage = '';
-    Icon feedbackIcon = Icon(Icons.check, color: Colors.green);
-    Color feedbackColor = Colors.green;
-
-    if (isAnswerSubmitted) {
-      if (questions[currentQuestionIndex].options[selectedAnswerIndex] ==
-          questions[currentQuestionIndex].correctAnswer) {
-        feedbackMessage = 'You are correct!';
-      } else {
-        feedbackMessage = 'Not quite right.';
-        feedbackIcon = Icon(Icons.close, color: Colors.red);
-        feedbackColor = Colors.red;
-      }
-    }
-
-    return Padding(
-      padding: const EdgeInsets.all(20.0), // Padding around the content
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Text(
-            shortStory,
-            style: GoogleFonts.montserrat(fontSize: 18, color: Colors.white),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          Text(
-            question,
-            style: GoogleFonts.montserrat(fontSize: 18, color: Colors.white),
-            textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: 20),
-          Column(
-            children: options.map<Widget>((option) {
-              int optionIndex = options.indexOf(option);
-              bool isSelected = optionIndex == selectedAnswerIndex;
-              bool isCorrectOption =
-                  questions[currentQuestionIndex].correctAnswer == option;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 10.0),
-                child: ElevatedButton(
-                  onPressed: isAnswerSubmitted
-                      ? null
-                      : () {
-                          setState(() {
-                            selectedAnswerIndex = optionIndex;
-                          });
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isAnswerSubmitted
-                        ? (isCorrectOption
-                            ? Colors.green
-                            : (isSelected
-                                ? Colors.orange[800]
-                                : Colors.blueAccent))
-                        : (isSelected ? Colors.orange[800] : Colors.blueAccent),
-                    minimumSize: const Size(double.infinity, 50),
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Color(0xFF003366), Color(0xFF0052CC)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(20.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          mainAxisAlignment:
+              MainAxisAlignment.center, // Center the content vertically
+          children: [
+            Text(
+              question,
+              style: GoogleFonts.montserrat(fontSize: 18, color: Colors.white),
+            ),
+            const SizedBox(height: 20),
+            Column(
+              children: options.map<Widget>((option) {
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 10.0),
+                  child: ElevatedButton(
+                    onPressed: () {
+                      setState(() {
+                        selectedAnswerIndex = options.indexOf(option);
+                        feedbackMessage = ''; // Reset feedback message
+                        isAnswerSelected = false; // Allow resubmission
+                      });
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor:
+                          selectedAnswerIndex == options.indexOf(option)
+                              ? Colors.orange // Color for selected options
+                              : Colors.blue[700], // Updated button color
+                      minimumSize: const Size(double.infinity, 50),
+                    ),
+                    child: Text(
+                      option.text,
+                      style: GoogleFonts.montserrat(color: Colors.white),
+                    ),
                   ),
-                  child: Text(
-                    option,
-                    style: GoogleFonts.montserrat(
-                        color: Colors.white, fontSize: 16),
-                  ),
-                ),
-              );
-            }).toList(),
-          ),
-          const SizedBox(height: 20),
-          if (isAnswerSubmitted) // Show feedback only after submission
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                feedbackIcon,
-                const SizedBox(width: 8),
-                Text(
-                  feedbackMessage,
-                  style: TextStyle(color: feedbackColor, fontSize: 16),
-                ),
-              ],
+                );
+              }).toList(),
             ),
-          const SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: (isAnswerSubmitted) ? _nextQuestion : _submitAnswer,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.blue,
+            const SizedBox(height: 20),
+            ElevatedButton(
+              onPressed: () {
+                if (selectedAnswerIndex != -1) {
+                  _nextQuestion(); // Allow moving to the next question after feedback is shown
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue,
+                minimumSize: const Size(150, 40),
+              ),
+              child: Text(
+                'Next', // Change button text based on selection
+                style: GoogleFonts.montserrat(color: Colors.white),
+              ),
             ),
-            child: Text(
-              isAnswerSubmitted ? 'Next' : 'Submit',
-              style: GoogleFonts.montserrat(color: Colors.white),
-            ),
-          ),
-        ],
+            const SizedBox(height: 20),
+          ],
+        ),
       ),
     );
-  }
+    }
 
   void _showErrorDialog(String message) {
     showDialog(
